@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chit Ledger — Bidding Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F2A93B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chit Ledger">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+  :root{
+    --paper:#FFF6E8;
+    --paper-2:#FFEACB;
+    --ink:#2B1B3D;
+    --ink-soft:#7A6B8A;
+    --rule:#F1DCB0;
+    --maroon:#D9432E;
+    --gold:#F2A93B;
+    --green:#1E9E6B;
+    --paper-card:#FFFFFF;
+    --danger:#E14848;
+    --teal:#0E8A8A;
+    --purple:#8E44AD;
+    --grad-hero: linear-gradient(120deg, #F2A93B 0%, #EF5B5B 45%, #8E44AD 100%);
+    --grad-btn: linear-gradient(120deg, #0E8A8A 0%, #1E9E6B 100%);
+    --shadow-card: 0 2px 10px rgba(142,68,173,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --font-scale: 1;
+    --ad-banner-height: 0px; /* set at runtime by ads.js once the native AdMob banner loads */
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--ad-banner-height));
+  }
+  *{box-sizing:inherit;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#1A1229; --paper-2:#251A3B; --ink:#F5EDFF; --ink-soft:#BCA9D6;
+      --rule:#3E2E5C; --maroon:#FF7A63; --gold:#FFC857; --green:#6FE3B0;
+      --paper-card:#241A3A; --danger:#FF7A7A; --teal:#4FE0D9; --purple:#C79AE8;
+      --grad-hero: linear-gradient(120deg, #FFC857 0%, #FF7A63 45%, #C79AE8 100%);
+      --grad-btn: linear-gradient(120deg, #1FBFBA 0%, #37C98A 100%);
+      --shadow-card: 0 2px 14px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1A1229; --paper-2:#251A3B; --ink:#F5EDFF; --ink-soft:#BCA9D6;
+    --rule:#3E2E5C; --maroon:#FF7A63; --gold:#FFC857; --green:#6FE3B0;
+    --paper-card:#241A3A; --danger:#FF7A7A; --teal:#4FE0D9; --purple:#C79AE8;
+    --grad-hero: linear-gradient(120deg, #FFC857 0%, #FF7A63 45%, #C79AE8 100%);
+    --grad-btn: linear-gradient(120deg, #1FBFBA 0%, #37C98A 100%);
+    --shadow-card: 0 2px 14px rgba(0,0,0,0.35);
+  }
+
+  .wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px;}
+
+  header.masthead{
+    border-bottom:none;
+    padding-bottom:16px;
+    margin-bottom:16px;
+    position:relative;
+  }
+  header.masthead h1{
+    font-size:clamp(calc(26px * var(--font-scale)),7vw,calc(32px * var(--font-scale)));
+    font-weight:700;
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+    background:var(--grad-hero);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    display:inline-block;
+  }
+  header.masthead .tagline{
+    font-family:'JetBrains Mono',monospace;
+    font-size:calc(11.5px * var(--font-scale));
+    color:var(--ink-soft);
+    line-height:1.5;
+  }
+  header.masthead::after{
+    content:'';
+    display:block;
+    height:4px;
+    margin-top:14px;
+    border-radius:4px;
+    background:var(--grad-hero);
+    opacity:0.85;
+  }
+  .version-badge{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:calc(11px * var(--font-scale));
+    font-weight:700;
+    vertical-align:middle;
+    background:var(--paper-card);
+    color:var(--purple);
+    border:1.5px solid var(--rule);
+    border-radius:20px;
+    padding:2px 9px;
+    -webkit-text-fill-color:var(--purple);
+  }
+
+  /* tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab-btn{
+    flex:1;
+    font-family:'JetBrains Mono',monospace;
+    font-size:calc(12.5px * var(--font-scale));
+    font-weight:700;
+    padding:13px 8px;
+    background:var(--paper-card);
+    color:var(--ink-soft);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    cursor:pointer;
+    box-shadow:var(--shadow-card);
+  }
+  .tab-btn.active{background:var(--grad-hero);color:#fff;border-color:transparent;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .panel{
+    background:var(--paper-card);
+    border:1px solid var(--rule);
+    border-radius:12px;
+    padding:16px;
+    box-shadow:var(--shadow-card);
+  }
+  .panel + .panel{margin-top:14px;}
+  .panel h2{
+    font-size:calc(13.5px * var(--font-scale));
+    margin:0 0 12px;
+    font-weight:700;
+    color:var(--purple);
+    border-bottom:1px solid var(--rule);
+    padding-bottom:9px;
+  }
+  details.panel{padding:0;}
+  details.panel summary{
+    list-style:none;
+    cursor:pointer;
+    padding:14px 16px;
+    font-size:calc(13.5px * var(--font-scale));
+    font-weight:700;
+    color:var(--purple);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  details.panel summary::-webkit-details-marker{display:none;}
+  details.panel summary::after{content:'+';font-family:'JetBrains Mono',monospace;font-size:calc(18px * var(--font-scale));color:var(--teal);font-weight:700;}
+  details.panel[open] summary::after{content:'−';}
+  details.panel .inner{padding:0 16px 16px;}
+
+  label.field{display:block;margin-bottom:12px;}
+  label.field span{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:calc(11px * var(--font-scale));
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  input[type=number], input[type=text], select{
+    width:100%;
+    font-family:'JetBrains Mono',monospace;
+    font-size:calc(16px * var(--font-scale));
+    padding:10px 10px;
+    background:var(--paper);
+    border:1.5px solid var(--rule);
+    border-radius:8px;
+    color:var(--ink);
+  }
+  input:focus, select:focus, button:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  .member-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .member-row input[type=text]{flex:1;}
+
+  .radio-group{display:flex;flex-direction:column;gap:10px;}
+  .radio-opt{display:flex;gap:8px;align-items:flex-start;font-size:calc(13px * var(--font-scale));line-height:1.4;color:var(--ink-soft);cursor:pointer;}
+  .radio-opt input{margin-top:3px;flex:none;width:auto;}
+  .radio-opt b{color:var(--purple);font-weight:700;}
+
+  button{
+    font-family:'JetBrains Mono',monospace;
+    font-size:calc(13px * var(--font-scale));
+    font-weight:700;
+    letter-spacing:0.02em;
+    padding:12px 16px;
+    border-radius:10px;
+    border:none;
+    background:var(--grad-btn);
+    color:#fff;
+    cursor:pointer;
+    min-height:44px;
+    box-shadow:0 2px 8px rgba(14,138,138,0.25);
+  }
+  button.secondary{background:var(--paper-card);color:var(--ink);border:1.5px solid var(--rule);box-shadow:none;}
+  button.wide{width:100%;}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+
+  .month-block{
+    border:1px solid var(--rule);
+    border-radius:12px;
+    margin-bottom:16px;
+    overflow:hidden;
+    background:var(--paper-card);
+    box-shadow:var(--shadow-card);
+  }
+  .month-head{
+    padding:12px 14px;
+    background:var(--grad-hero);
+  }
+  .month-head .m-title{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:calc(12.5px * var(--font-scale));margin-bottom:6px;color:#fff;letter-spacing:0.03em;}
+  .month-stats{display:flex;gap:12px;flex-wrap:wrap;}
+  .stat{font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:rgba(255,255,255,0.85);}
+  .stat b{color:#fff;font-weight:700;}
+
+  .round-card{padding:12px 14px;border-bottom:1px solid var(--rule);font-size:calc(13.5px * var(--font-scale));border-left:4px solid var(--teal);}
+  .round-card:last-child{border-bottom:none;}
+  .round-card .rname{font-weight:700;margin-bottom:4px;}
+  .round-line{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:calc(12px * var(--font-scale));color:var(--ink-soft);padding:1px 0;}
+  .round-line b{color:var(--ink);}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:calc(9.5px * var(--font-scale));font-weight:700;padding:3px 8px;border-radius:20px;margin-left:6px;color:#fff;}
+  .tag.deferred{background:var(--maroon);}
+  .tag.settled{background:var(--green);}
+  .tag.floor{background:var(--gold);color:#2B1B3D;}
+
+  .bid-row-form{padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--paper-2);}
+  .bid-row-form .f span{font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);display:block;margin-bottom:5px;}
+  .stepper{display:flex;gap:6px;}
+  .stepper input{text-align:center;}
+  button.step-btn{
+    min-height:44px;
+    width:44px;
+    flex:none;
+    padding:0;
+    font-size:calc(18px * var(--font-scale));
+    font-weight:700;
+    background:var(--paper-card);
+    color:var(--purple);
+    border:1.5px solid var(--rule);
+    box-shadow:none;
+  }
+  .bid-preview{
+    border:2px dashed var(--gold);
+    border-radius:8px;
+    padding:10px 12px;
+    background:var(--paper-card);
+  }
+  .bid-preview:empty{display:none;padding:0;border:none;}
+  .bid-preview .round-line span{color:var(--ink-soft);}
+  .bid-preview .rate-line{color:var(--purple);font-weight:700;}
+
+  .fund-row{display:flex;gap:6px;align-items:stretch;margin-bottom:6px;}
+  button.fund-select{
+    flex:1;
+    text-align:left;
+    background:var(--paper-card);
+    color:var(--ink);
+    border:1.5px solid var(--rule);
+    border-radius:10px;
+    font-weight:700;
+    font-size:calc(13px * var(--font-scale));
+    padding:10px 12px;
+    box-shadow:var(--shadow-card);
+  }
+  button.fund-select.active{background:var(--grad-hero);color:#fff;border-color:transparent;}
+  button.icon-btn{
+    min-height:auto;
+    padding:0 12px;
+    font-size:calc(13px * var(--font-scale));
+    background:var(--paper-card);
+    color:var(--purple);
+    border:1.5px solid var(--rule);
+    border-radius:10px;
+    box-shadow:none;
+  }
+  .new-fund-row{display:flex;gap:8px;margin-top:4px;}
+  .new-fund-row input{flex:1;}
+
+  .settle-note{padding:12px 14px;font-size:calc(13px * var(--font-scale));color:var(--ink-soft);background:var(--paper-2);line-height:1.55;border-left:4px solid var(--gold);}
+  .settle-note b{color:var(--ink);}
+
+  table.summary{width:100%;border-collapse:collapse;font-size:calc(12.5px * var(--font-scale));}
+  table.summary th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:calc(9.5px * var(--font-scale));color:#fff;background:var(--purple);padding:8px 6px;}
+  table.summary th:first-child{border-radius:8px 0 0 8px;}
+  table.summary th:last-child{border-radius:0 8px 8px 0;}
+  table.summary td{padding:8px 6px;border-bottom:1px solid var(--rule);}
+  table.summary td.num{font-family:'JetBrains Mono',monospace;text-align:right;}
+  .pos{color:var(--green);font-weight:700;}
+  .neg{color:var(--maroon);font-weight:700;}
+
+  .empty-hint{font-family:'JetBrains Mono',monospace;font-size:calc(12px * var(--font-scale));color:var(--ink-soft);padding:16px 14px;line-height:1.6;}
+  .error-msg{font-family:'JetBrains Mono',monospace;font-size:calc(11.5px * var(--font-scale));color:var(--danger);font-weight:700;}
+
+  .proj-card{border:1px solid var(--rule);border-radius:12px;background:var(--paper-card);padding:14px;margin-bottom:12px;box-shadow:var(--shadow-card);}
+  .proj-card .pname{font-weight:700;font-size:calc(15px * var(--font-scale));margin-bottom:8px;color:var(--purple);}
+  .proj-line{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:calc(12px * var(--font-scale));padding:3px 0;color:var(--ink-soft);}
+  .proj-line b{color:var(--ink);}
+  .verdict{
+    margin-top:10px;padding:10px 12px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:calc(12px * var(--font-scale));font-weight:700;
+  }
+  .verdict.chit{background:rgba(30,158,107,0.15);color:var(--green);border:1px solid rgba(30,158,107,0.3);}
+  .verdict.loan{background:rgba(217,67,46,0.15);color:var(--maroon);border:1px solid rgba(217,67,46,0.3);}
+  .verdict.neutral{background:rgba(242,169,59,0.18);color:#946200;border:1px solid rgba(242,169,59,0.4);}
+
+  footer.foot{margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);text-align:center;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>🪙 Chit Ledger <span class="version-badge" id="versionBadge"></span></h1>
+    <div class="tagline">Configurable bidding simulator for rotating chit groups, with a loan-vs-chit cost projection.</div>
+  </header>
+
+  <div class="panel" id="textSizePanel" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);">Text size</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button type="button" class="step-btn" onclick="stepFontScale(-1)">A−</button>
+      <span id="fontScaleLabel" style="font-family:'JetBrains Mono',monospace;font-weight:700;min-width:44px;text-align:center;font-size:calc(12px * var(--font-scale));">100%</span>
+      <button type="button" class="step-btn" onclick="stepFontScale(1)">A+</button>
+      <button type="button" class="icon-btn" onclick="resetFontScale()" title="Reset text size">Reset</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnSim" type="button">Simulator</button>
+    <button class="tab-btn" id="tabBtnProj" type="button">Loan comparison</button>
+  </div>
+
+  <!-- SIMULATOR TAB -->
+  <div class="tab-panel active" id="tabSim">
+
+    <div class="panel">
+      <h2>Your chit funds</h2>
+      <div id="syncStatus" style="font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);margin-bottom:10px;">💾 saved on this device only</div>
+      <div id="fundsList"></div>
+      <div class="new-fund-row">
+        <input type="text" id="newFundName" placeholder="New chit fund name">
+        <button type="button" id="btnNewFund">Create</button>
+      </div>
+    </div>
+
+    <details class="panel" open id="setupDetails">
+      <summary>Group setup</summary>
+      <div class="inner">
+        <label class="field">
+          <span>Number of members</span>
+          <input type="number" id="cfgCount" min="2" max="20" value="5" inputmode="numeric">
+        </label>
+        <label class="field">
+          <span>Monthly contribution per member (₹)</span>
+          <input type="number" id="cfgContribution" min="100" step="100" value="5000" inputmode="numeric">
+        </label>
+        <label class="field">
+          <span>Minimum discount floor (₹)</span>
+          <input type="number" id="cfgFloor" min="0" step="500" value="10000" inputmode="numeric">
+        </label>
+        <div id="memberNames"></div>
+        <button class="secondary wide" id="btnRebuild" type="button">Apply setup</button>
+      </div>
+    </details>
+
+    <details class="panel">
+      <summary>Shortfall rule</summary>
+      <div class="inner">
+        <div class="radio-group">
+          <label class="radio-opt">
+            <input type="radio" name="shortfall" value="defer" checked>
+            <span><b>Defer to next month.</b> Pay what's available now, carry the balance forward, settled first from next month's pot.</span>
+          </label>
+          <label class="radio-opt">
+            <input type="radio" name="shortfall" value="topup">
+            <span><b>Top up now.</b> Collect the shortfall as an equal extra amount from all members immediately.</span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <div id="months" style="margin-top:16px;"></div>
+
+    <div class="panel">
+      <h2>Group state</h2>
+      <div id="stateBox" style="font-family:'JetBrains Mono',monospace;font-size:calc(12px * var(--font-scale));color:var(--ink-soft);line-height:2;"></div>
+      <div id="saveStatus" style="font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);margin-top:4px;">auto-saves to this browser</div>
+      <button class="secondary wide" id="btnReset" type="button" style="margin-top:8px;">Reset simulation</button>
+    </div>
+  </div>
+
+  <!-- PROJECTION TAB -->
+  <div class="tab-panel" id="tabProj">
+    <div class="panel">
+      <h2>Loan comparison settings</h2>
+      <label class="field">
+        <span>Bank loan annual interest rate (%)</span>
+        <input type="number" id="loanRate" min="0" step="0.1" value="12" inputmode="decimal">
+      </label>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);line-height:1.6;">
+        Each winner's chit outcome is converted into an equivalent annualized interest rate (same principal, same fixed monthly installment, same tenure) so it can be compared directly against the bank rate above. This conversion always uses reducing-balance math, since that's the only way an "interest rate" is meaningfully comparable — the method selector below doesn't apply here.
+      </div>
+      <label class="field">
+        <span>Loan calculation method (unused by the rate comparison below)</span>
+        <select id="loanMethod">
+          <option value="emi">Reducing balance (EMI) — like a real personal loan</option>
+          <option value="simple">Simple interest on full principal</option>
+          <option value="flat">Flat rate — interest fixed on original principal</option>
+        </select>
+      </label>
+    </div>
+    <div id="projResults" style="margin-top:14px;"></div>
+  </div>
+
+  <footer class="foot">All figures are illustrative — a working model of the bidding rules, not financial advice.<br>📲 On iPhone: Share → Add to Home Screen for an app-like icon. On Android: browser menu → Add to Home screen.</footer>
+</div>
+
+<script>
+/* ---------- State ---------- */
+let members = [];
+let months = [];
+let cycleClosed = false;
+let config = {count:5, contribution:5000, floor:10000};
+
+function shortfallMode(){ return document.querySelector('input[name=shortfall]:checked').value; }
+function fmt(n){ n = Math.round(n); return '₹' + n.toLocaleString('en-IN'); }
+
+/* ---------- App version ---------- */
+const APP_VERSION = 'v1.3';
+document.addEventListener('DOMContentLoaded', () => {
+  const badge = document.getElementById('versionBadge');
+  if(badge) badge.textContent = APP_VERSION;
+});
+// In case DOMContentLoaded already fired by the time this runs (script is at end of body):
+(function setVersionBadgeNow(){
+  const badge = document.getElementById('versionBadge');
+  if(badge) badge.textContent = APP_VERSION;
+})();
+
+/* ---------- Text size control (global preference, independent of any chit fund) ---------- */
+const FONT_SCALE_KEY = 'chitLedgerFontScale_v1';
+const FONT_SCALE_MIN = 0.85, FONT_SCALE_MAX = 1.5, FONT_SCALE_STEP = 0.1, FONT_SCALE_DEFAULT = 1;
+let fontScale = FONT_SCALE_DEFAULT;
+function applyFontScale(){
+  document.documentElement.style.setProperty('--font-scale', fontScale);
+  const label = document.getElementById('fontScaleLabel');
+  if(label) label.textContent = Math.round(fontScale * 100) + '%';
+  try{ localStorage.setItem(FONT_SCALE_KEY, String(fontScale)); }catch(e){}
+}
+function stepFontScale(dir){
+  fontScale = Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, +(fontScale + dir * FONT_SCALE_STEP).toFixed(2)));
+  applyFontScale();
+}
+function resetFontScale(){
+  fontScale = FONT_SCALE_DEFAULT;
+  applyFontScale();
+}
+(function initFontScale(){
+  try{
+    const saved = localStorage.getItem(FONT_SCALE_KEY);
+    if(saved){
+      const v = parseFloat(saved);
+      if(!isNaN(v) && v >= FONT_SCALE_MIN && v <= FONT_SCALE_MAX) fontScale = v;
+    }
+  }catch(e){}
+  applyFontScale();
+})();
+
+/* ---------- Technical (minimum-bid) months simulation ----------
+   "Practically pending" is just a headcount — how many members haven't won yet.
+   "Technically pending" is more precise: if everyone left bids exactly the floor from here
+   on, the same cascading logic that runs the real bidding can still fit more than one winner
+   into a single month (since a floor bid rarely drains the whole pot) — so the true worst-case
+   month count is usually less than one-winner-per-month would suggest. This simulates that,
+   using only counts (not specific members), since every floor bid pays out the same amount. */
+function simulateTechnicalMonths(startAvailable, remainingCount){
+  if(remainingCount <= 0) return 0;
+  const floorEntitlement = (config.count * config.contribution) - config.floor;
+  let avail = startAvailable;
+  let remaining = remainingCount;
+  let monthsCount = 1;
+  let pendingDeferred = 0;
+  while(remaining > 0){
+    if(floorEntitlement <= avail){
+      avail -= floorEntitlement;
+    } else {
+      pendingDeferred = floorEntitlement - avail;
+      avail = 0;
+    }
+    remaining--;
+    if(remaining === 0) break;
+    if(avail <= 0){
+      monthsCount++;
+      avail = (config.count * config.contribution) - pendingDeferred;
+      pendingDeferred = 0;
+    }
+  }
+  return monthsCount;
+}
+
+/* ---------- Member color coding ---------- */
+const MEMBER_COLORS = ['#D9432E','#0E8A8A','#8E44AD','#F2A93B','#1E9E6B','#C2185B','#3F51B5','#E67E22','#009688','#7B1FA2'];
+function memberColorById(id){
+  return MEMBER_COLORS[((id % MEMBER_COLORS.length) + MEMBER_COLORS.length) % MEMBER_COLORS.length];
+}
+
+/* ---------- Saving: multiple chit funds, per-browser, local only ---------- */
+const FUNDS_KEY = 'chitLedgerFunds_v1';
+const OLD_SINGLE_KEY = 'chitLedgerState_v1'; // pre-multi-fund format, read once for migration
+let fundsStore = {activeId:null, funds:{}};
+let activeFundId = null;
+
+function newFundId(){ return 'f_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+function defaultFundState(name){
+  return {name, config:{count:5, contribution:5000, floor:10000}, members:[], months:[], cycleClosed:false, shortfallMode:'defer'};
+}
+function persistFundsStore(){
+  try{
+    localStorage.setItem(FUNDS_KEY, JSON.stringify(fundsStore));
+    const el = document.getElementById('saveStatus');
+    if(el) el.textContent = 'saved just now';
+  }catch(e){ /* storage unavailable — simulator still works, just won't persist */ }
+}
+function saveState(){
+  if(!activeFundId) return;
+  const existingName = (fundsStore.funds[activeFundId] && fundsStore.funds[activeFundId].name) || 'My Chit Fund';
+  const doc = {name: existingName, config, members, months, cycleClosed, shortfallMode: shortfallMode(), updatedAt: Date.now(), updatedById: viewerId || null};
+  fundsStore.funds[activeFundId] = doc;
+  fundsStore.activeId = activeFundId;
+  persistFundsStore();
+  if(dbAvailable && dbCap){
+    dbCap.doc('funds/' + activeFundId).set(doc).catch(err => {
+      console.warn('shared save failed', err);
+    });
+  }
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Shared sync: multiple users, multiple devices, live ----------
+   When the db capability is granted, chit funds live in a shared, realtime
+   store instead of just this browser's localStorage — every signed-in
+   member of the organization who opens this page sees and can edit the
+   same funds. Falls back to local-only (per-device) storage automatically
+   when db isn't available (not signed in, capability not granted, etc). */
+let dbCap = null;
+let userCap = null;
+let dbAvailable = false;
+let viewerId = null;
+let dbFundsUnsub = null;
+let firstSnapshotHandled = false;
+
+function updateSyncStatusUI(){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  if(dbAvailable){
+    el.innerHTML = '🌐 <span style="color:var(--green);">synced — shared with your organization</span>';
+  } else {
+    el.innerHTML = '💾 saved on this device only';
+  }
+}
+
+function loadFundDataIntoLive(f){
+  config = f.config || {count:5, contribution:5000, floor:10000};
+  document.getElementById('cfgCount').value = config.count;
+  document.getElementById('cfgContribution').value = config.contribution;
+  document.getElementById('cfgFloor').value = config.floor;
+  if(f.shortfallMode){
+    const radio = document.querySelector('input[name=shortfall][value="' + f.shortfallMode + '"]');
+    if(radio) radio.checked = true;
+  }
+  members = (f.members || []).map(m => Object.assign({entitlementTotal:0}, m));
+  months = f.months || [];
+  cycleClosed = !!f.cycleClosed;
+}
+
+async function initSharedSync(){
+  try{ dbCap = await claude.use('db'); }catch(e){ dbCap = null; }
+  try{ userCap = await claude.use('user'); }catch(e){ userCap = null; }
+  dbAvailable = !!dbCap;
+  if(userCap){
+    try{ viewerId = await userCap.id(); }catch(e){ viewerId = null; }
+  }
+  updateSyncStatusUI();
+  if(dbAvailable) subscribeSharedFunds();
+}
+
+function subscribeSharedFunds(){
+  if(dbFundsUnsub || !dbCap) return;
+  const localIdsBeforeSync = Object.keys(fundsStore.funds);
+
+  dbFundsUnsub = dbCap.collection('funds').onSnapshot((snap) => {
+    let fundListChanged = false;
+
+    snap.docChanges().forEach(change => {
+      const id = change.doc.id;
+      if(change.type === 'removed'){
+        if(fundsStore.funds[id]){ delete fundsStore.funds[id]; fundListChanged = true; }
+        if(id === activeFundId){
+          const remaining = Object.keys(fundsStore.funds);
+          if(remaining.length){
+            activateFund(remaining[0]);
+          } else {
+            const newId = newFundId();
+            fundsStore.funds[newId] = defaultFundState('My Chit Fund');
+            fundsStore.activeId = newId;
+            activateFund(newId);
+          }
+        }
+        return;
+      }
+      const data = change.doc.data();
+      if(!data) return;
+      if(!fundsStore.funds[id]) fundListChanged = true;
+      fundsStore.funds[id] = data;
+      // Someone else's edit to the fund we're currently viewing — refresh the live view.
+      // Skip our own optimistic echo (hasPendingWrites) so we don't clobber active typing.
+      if(id === activeFundId && !change.doc.metadata.hasPendingWrites){
+        loadFundDataIntoLive(data);
+        renderMonths();
+        renderState();
+        if(document.getElementById('tabProj').classList.contains('active')) renderProjection();
+      }
+    });
+
+    // One-time migration: push any funds that existed only locally (created before
+    // shared sync connected) up into the shared store so they become visible to everyone.
+    if(!firstSnapshotHandled){
+      firstSnapshotHandled = true;
+      const serverIds = snap.docs.map(d => d.id);
+      localIdsBeforeSync.forEach(id => {
+        if(!serverIds.includes(id) && fundsStore.funds[id]){
+          dbCap.doc('funds/' + id).set(fundsStore.funds[id]).catch(() => {});
+        }
+      });
+    }
+
+    fundsStore.activeId = activeFundId;
+    persistFundsStore();
+    renderFundSelector();
+  }, (err) => {
+    console.warn('shared funds subscription error', err);
+    dbAvailable = false;
+    updateSyncStatusUI();
+  });
+}
+
+/* ---------- Tabs ---------- */
+document.getElementById('tabBtnSim').addEventListener('click', () => switchTab('sim'));
+document.getElementById('tabBtnProj').addEventListener('click', () => switchTab('proj'));
+function switchTab(which){
+  document.getElementById('tabBtnSim').classList.toggle('active', which==='sim');
+  document.getElementById('tabBtnProj').classList.toggle('active', which==='proj');
+  document.getElementById('tabSim').classList.toggle('active', which==='sim');
+  document.getElementById('tabProj').classList.toggle('active', which==='proj');
+  if(which==='proj') renderProjection();
+}
+
+/* ---------- Fund management ---------- */
+function renderFundSelector(){
+  const box = document.getElementById('fundsList');
+  if(!box) return;
+  box.innerHTML = '';
+  const idsWithEditors = [];
+  Object.keys(fundsStore.funds).forEach(id => {
+    const f = fundsStore.funds[id];
+    const isActive = (id === activeFundId);
+    const row = document.createElement('div');
+    row.className = 'fund-row';
+    row.innerHTML =
+      '<button type="button" class="fund-select' + (isActive ? ' active' : '') + '" onclick="switchFund(\'' + id + '\')">' +
+        escapeHtml(f.name || 'Untitled') + (f.cycleClosed ? ' <span class="tag settled">closed</span>' : '') +
+        (dbAvailable ? '<br><span id="editedBy_' + id + '" style="font-weight:400;font-size:calc(10px * var(--font-scale));opacity:0.8;">&nbsp;</span>' : '') +
+      '</button>' +
+      '<button type="button" class="icon-btn" onclick="startRenameFund(\'' + id + '\')" title="Rename">✎</button>' +
+      '<button type="button" class="icon-btn" onclick="confirmDeleteFund(\'' + id + '\')" title="Delete">🗑</button>';
+    box.appendChild(row);
+    if(f.updatedById) idsWithEditors.push(f.updatedById);
+  });
+
+  // Resolve "edited by" names asynchronously without blocking the list render.
+  if(dbAvailable && userCap && idsWithEditors.length){
+    userCap.profiles(idsWithEditors).then(profiles => {
+      Object.keys(fundsStore.funds).forEach(id => {
+        const f = fundsStore.funds[id];
+        if(!f.updatedById) return;
+        const el = document.getElementById('editedBy_' + id);
+        if(!el) return;
+        const p = profiles[f.updatedById];
+        const label = p && p.isMe ? 'edited by you' : (p && p.name ? ('edited by ' + p.name) : 'edited by someone');
+        el.textContent = label;
+      });
+    }).catch(() => {});
+  }
+}
+
+function activateFund(id){
+  activeFundId = id;
+  const f = fundsStore.funds[id];
+  loadFundDataIntoLive(f);
+
+  if(f.months && f.months.length){
+    renderNameInputs();
+    document.getElementById('setupDetails').removeAttribute('open');
+    renderFundSelector();
+    renderAll();
+  } else {
+    // Fresh fund with nothing recorded yet — initialize its first month.
+    renderNameInputs();
+    document.getElementById('setupDetails').setAttribute('open', '');
+    renderFundSelector();
+    buildGroup();
+    document.getElementById('setupDetails').setAttribute('open', ''); // buildGroup auto-closes it; reopen so a brand new fund still shows setup
+  }
+}
+
+function switchFund(id){
+  if(id === activeFundId) return;
+  activateFund(id);
+}
+
+function startRenameFund(id){
+  const current = fundsStore.funds[id].name;
+  const name = window.prompt('Rename this chit fund', current);
+  if(name && name.trim()){
+    fundsStore.funds[id].name = name.trim();
+    persistFundsStore();
+    renderFundSelector();
+    if(dbAvailable && dbCap){
+      dbCap.doc('funds/' + id).update({name: name.trim(), updatedAt: Date.now(), updatedById: viewerId || null}).catch(err => {
+        console.warn('shared rename failed', err);
+      });
+    }
+  }
+}
+
+function confirmDeleteFund(id){
+  const name = fundsStore.funds[id].name || 'this chit fund';
+  if(!window.confirm('Delete "' + name + '"? This can\'t be undone.')) return;
+  delete fundsStore.funds[id];
+  if(dbAvailable && dbCap){
+    dbCap.doc('funds/' + id).delete().catch(err => { console.warn('shared delete failed', err); });
+  }
+  const remaining = Object.keys(fundsStore.funds);
+  if(id === activeFundId){
+    if(remaining.length){
+      activateFund(remaining[0]);
+    } else {
+      const newId = newFundId();
+      fundsStore.funds[newId] = defaultFundState('My Chit Fund');
+      fundsStore.activeId = newId;
+      activateFund(newId);
+    }
+  } else {
+    persistFundsStore();
+    renderFundSelector();
+  }
+}
+
+function createFund(){
+  const input = document.getElementById('newFundName');
+  const name = (input.value || '').trim() || ('Chit Fund ' + (Object.keys(fundsStore.funds).length + 1));
+  const id = newFundId();
+  fundsStore.funds[id] = defaultFundState(name);
+  fundsStore.activeId = id;
+  input.value = '';
+  activateFund(id);
+}
+
+/* ---------- Setup ---------- */
+function renderNameInputs(){
+  const c = parseInt(document.getElementById('cfgCount').value) || 5;
+  const box = document.getElementById('memberNames');
+  box.innerHTML = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);display:block;margin-bottom:8px;">member names</span>';
+  for(let i=0;i<c;i++){
+    const existing = members[i] ? members[i].name : ('Member ' + String.fromCharCode(65+i));
+    const row = document.createElement('div');
+    row.className = 'member-row';
+    row.innerHTML = '<span style="width:14px;height:14px;border-radius:50%;background:' + memberColorById(i) + ';flex:none;display:inline-block;"></span><input type="text" data-idx="' + i + '" class="nameInput" value="' + existing + '">';
+    box.appendChild(row);
+  }
+}
+
+function buildGroup(){
+  const c = parseInt(document.getElementById('cfgCount').value) || 5;
+  const contribution = parseFloat(document.getElementById('cfgContribution').value) || 0;
+  const floor = parseFloat(document.getElementById('cfgFloor').value) || 0;
+  config = {count:c, contribution, floor};
+  const nameInputs = document.querySelectorAll('.nameInput');
+  members = [];
+  for(let i=0;i<c;i++){
+    const nm = nameInputs[i] ? (nameInputs[i].value.trim() || ('Member ' + String.fromCharCode(65+i))) : ('Member ' + String.fromCharCode(65+i));
+    members.push({id:i, name:nm, won:false, wonMonth:null, totalPaidIn:0, totalReceived:0, entitlementTotal:0});
+  }
+  months = [];
+  cycleClosed = false;
+  startNewMonth();
+  document.getElementById('setupDetails').removeAttribute('open');
+  renderAll();
+}
+
+function startNewMonth(){
+  const idx = months.length + 1;
+  const pot = config.count * config.contribution;
+  const prevMonth = months.length ? months[months.length-1] : null;
+  const prevDeferred = prevMonth ? (prevMonth.deferredOut || 0) : 0;
+  const prevCreditorId = prevMonth ? prevMonth.deferredCreditorId : null;
+  const remainingEligible = members.filter(m=>!m.won).length;
+
+  // Settle any pending deferred amount to whoever is actually owed it, right as this month opens.
+  if(prevDeferred > 0 && prevCreditorId != null){
+    const creditor = members.find(m => m.id === prevCreditorId);
+    if(creditor) creditor.totalReceived += prevDeferred;
+  }
+
+  const month = {
+    index: idx, fullPot: pot, available: pot - prevDeferred, deferredIn: prevDeferred,
+    deferredOut: 0, deferredCreditorId: null, rounds: [], settled: false, extraCollections: [],
+    isFinalSettle: false, isDeferredSettleOnly: false
+  };
+
+  if(remainingEligible === 0){
+    // Nobody left to bid — this month exists purely to settle the pending deferred amount above.
+    const perHead = prevDeferred / config.count;
+    month.isDeferredSettleOnly = true;
+    month.collectionPerHead = perHead;
+    month.available = 0;
+    members.forEach(m => m.totalPaidIn += perHead);
+    month.settled = true;
+    cycleClosed = true;
+  } else if(remainingEligible === 1){
+    const floorPayout = Math.max(pot - config.floor, 0);
+    const totalDue = prevDeferred + floorPayout;
+    const perHead = totalDue / config.count;
+    month.isFinalSettle = true;
+    month.finalPayout = floorPayout;
+    month.collectionPerHead = perHead;
+    const winner = members.find(m=>!m.won);
+    winner.won = true; winner.wonMonth = idx;
+    winner.totalReceived += floorPayout;
+    winner.entitlementTotal += floorPayout;
+    members.forEach(m => m.totalPaidIn += perHead);
+    month.settled = true;
+    cycleClosed = true;
+  } else {
+    members.forEach(m => m.totalPaidIn += config.contribution);
+    month.collectionPerHead = config.contribution;
+  }
+  months.push(month);
+}
+
+/* ---------- Bidding ---------- */
+function eligibleForRound(){ return members.filter(m => !m.won); }
+
+function submitBid(monthIdx){
+  const month = months[monthIdx];
+  const sel = document.getElementById('bidWinner_' + monthIdx);
+  const amtInput = document.getElementById('bidAmount_' + monthIdx);
+  const errBox = document.getElementById('bidErr_' + monthIdx);
+  errBox.textContent = '';
+
+  const winnerId = parseInt(sel.value);
+  const bid = parseFloat(amtInput.value);
+  const winner = members.find(m=>m.id===winnerId);
+
+  if(!winner){ errBox.textContent = 'Choose a member.'; return; }
+  if(isNaN(bid) || bid <= 0){ errBox.textContent = 'Enter a valid bid amount.'; return; }
+  if(bid < config.floor){ errBox.textContent = 'Bid can\'t be below the minimum of ' + fmt(config.floor) + '.'; return; }
+
+  const entitlement = month.fullPot - bid;
+  if(entitlement <= 0){ errBox.textContent = 'This bid leaves zero or negative payout — check the amount.'; return; }
+
+  let paidNow, deferred = 0;
+  if(entitlement <= month.available){
+    paidNow = entitlement;
+    month.available -= paidNow;
+  } else {
+    const shortfall = entitlement - month.available;
+    if(shortfallMode() === 'defer'){
+      paidNow = month.available; deferred = shortfall;
+      month.available = 0; month.deferredOut += shortfall;
+      month.deferredCreditorId = winner.id;
+    } else {
+      const perHead = shortfall / config.count;
+      members.forEach(m => m.totalPaidIn += perHead);
+      month.extraCollections.push({reason: winner.name + "'s shortfall", perHead, total: shortfall});
+      paidNow = entitlement; month.available = 0;
+    }
+  }
+
+  winner.won = true; winner.wonMonth = month.index;
+  winner.totalReceived += paidNow;
+  winner.entitlementTotal += entitlement; // full amount they're owed, including any pending/deferred portion
+  month.rounds.push({ winnerName: winner.name, winnerId: winner.id, bid, entitlement, paidNow, deferred });
+
+  const stillEligible = eligibleForRound().length;
+  if(stillEligible === 0){
+    month.settled = true;
+    if(month.deferredOut > 0){
+      startNewMonth(); // wrap-up month purely to settle the pending deferred amount
+    } else {
+      cycleClosed = true;
+    }
+  } else if(stillEligible === 1 && month.available > 0){
+    settleFinalWithinMonth(month);
+  } else if(month.available <= 0){
+    month.settled = true; startNewMonth();
+  }
+  renderAll();
+}
+
+function settleFinalWithinMonth(month){
+  const winner = eligibleForRound()[0];
+  const payout = Math.max(month.available, 0);
+  winner.won = true; winner.wonMonth = month.index;
+  winner.totalReceived += payout;
+  winner.entitlementTotal += payout;
+  month.rounds.push({ winnerName: winner.name, winnerId: winner.id, bid: null, entitlement: payout, paidNow: payout, deferred: 0, isFloorSettle: true });
+  month.available = 0; month.settled = true; cycleClosed = true;
+}
+
+/* ---------- Live bid preview ---------- */
+const BID_STEP = 500;
+function stepBid(mi, dir){
+  const amtInput = document.getElementById('bidAmount_' + mi);
+  if(!amtInput) return;
+  const current = parseFloat(amtInput.value);
+  const base = isNaN(current) ? (config.floor || 0) : current;
+  let next = base + (dir * BID_STEP);
+  if(next < config.floor) next = config.floor;
+  amtInput.value = next;
+  updateBidPreview(mi);
+}
+
+function updateBidPreview(mi){
+  const month = months[mi];
+  if(!month) return;
+  const preview = document.getElementById('bidPreview_' + mi);
+  const sel = document.getElementById('bidWinner_' + mi);
+  const amtInput = document.getElementById('bidAmount_' + mi);
+  if(!preview || !sel || !amtInput) return;
+
+  const bid = parseFloat(amtInput.value);
+  if(isNaN(bid) || bid <= 0){ preview.innerHTML = ''; return; }
+  if(bid < config.floor){
+    preview.innerHTML = '<div class="round-line" style="color:var(--danger);"><span>below minimum bid of ' + fmt(config.floor) + '</span></div>';
+    return;
+  }
+  const entitlement = month.fullPot - bid;
+  if(entitlement <= 0){
+    preview.innerHTML = '<div class="round-line" style="color:var(--danger);"><span>leaves zero or negative payout</span></div>';
+    return;
+  }
+
+  let paidNow, deferred = 0;
+  if(entitlement <= month.available){
+    paidNow = entitlement;
+  } else {
+    paidNow = month.available;
+    deferred = entitlement - month.available;
+  }
+  const potLeftAfter = Math.max(month.available - paidNow, 0);
+
+  const winnerId = parseInt(sel.value);
+  const winnerName = (members.find(m => m.id === winnerId) || {}).name || '—';
+
+  const discountPct = (bid / month.fullPot) * 100;
+  const payoutPct = (entitlement / month.fullPot) * 100;
+
+  // Tenure estimate for this hypothetical win: best case 1 month, worst case computed by
+  // simulating everyone else bidding at the floor from here on (same refined logic as the
+  // Loan comparison tab), rather than a naive one-winner-per-month headcount.
+  const eligible = eligibleForRound();
+  const remainingAfter = Math.max(eligible.length - 1, 0);
+  const tenureMin = 1;
+  const tenureMax = Math.max(simulateTechnicalMonths(potLeftAfter, remainingAfter), 1);
+  const rateMin = impliedAnnualRate(entitlement, config.contribution, tenureMin);
+  const rateMax = impliedAnnualRate(entitlement, config.contribution, tenureMax);
+  const rLo = Math.min(rateMin, rateMax), rHi = Math.max(rateMin, rateMax);
+  const rateLabel = (Math.abs(rHi-rLo) < 0.05) ? rLo.toFixed(1) + '%' : (rLo.toFixed(1) + '% – ' + rHi.toFixed(1) + '%');
+
+  const bankRateInput = document.getElementById('loanRate');
+  const bankRate = bankRateInput ? (parseFloat(bankRateInput.value) || 0) : null;
+  let bankCompareLine = '';
+  if(bankRate !== null){
+    const worst = Math.max(rLo, rHi);
+    if(worst < 0){
+      bankCompareLine = '<div class="round-line" style="color:var(--green);"><span>vs. bank rate (' + bankRate + '%)</span><b>chit effectively earns instead of costing</b></div>';
+    } else if(worst < bankRate){
+      bankCompareLine = '<div class="round-line" style="color:var(--green);"><span>vs. bank rate (' + bankRate + '%)</span><b>cheaper by ~' + (bankRate - worst).toFixed(1) + ' pts</b></div>';
+    } else if(worst > bankRate){
+      bankCompareLine = '<div class="round-line" style="color:var(--maroon);"><span>vs. bank rate (' + bankRate + '%)</span><b>costlier by ~' + (worst - bankRate).toFixed(1) + ' pts</b></div>';
+    } else {
+      bankCompareLine = '<div class="round-line"><span>vs. bank rate (' + bankRate + '%)</span><b>about the same</b></div>';
+    }
+  }
+
+  preview.innerHTML =
+    '<div class="round-line"><span>winner</span><b style="color:' + memberColorById(winnerId) + ';">' + escapeHtml(winnerName) + '</b></div>' +
+    '<div class="round-line"><span>discount bid</span><b>' + fmt(bid) + ' (' + discountPct.toFixed(1) + '% of pot)</b></div>' +
+    '<div class="round-line"><span>entitlement</span><b>' + fmt(entitlement) + ' (' + payoutPct.toFixed(1) + '% of pot)</b></div>' +
+    '<div class="round-line"><span>paid now</span><b>' + fmt(paidNow) + '</b></div>' +
+    (deferred > 0 ? '<div class="round-line" style="color:var(--maroon);"><span>deferred to next month</span><b>' + fmt(deferred) + '</b></div>' : '') +
+    '<div class="round-line"><span>pot left after this round</span><b>' + fmt(potLeftAfter) + '</b></div>' +
+    '<div class="round-line"><span>members still eligible after</span><b>' + remainingAfter + '</b></div>' +
+    '<div class="round-line rate-line"><span>implied annualized rate (est.)</span><b>' + rateLabel + '</b></div>' +
+    bankCompareLine;
+}
+
+/* ---------- Rendering: Simulator ---------- */
+function renderAll(){ renderState(); renderMonths(); if(document.getElementById('tabProj').classList.contains('active')) renderProjection(); saveState(); }
+
+function renderState(){
+  const won = members.filter(m=>m.won).length;
+  const practicallyPending = members.length - won;
+  let technicalLine = '';
+  if(!cycleClosed && practicallyPending > 0 && months.length){
+    const currentMonth = months[months.length - 1];
+    const technicalMonths = simulateTechnicalMonths(currentMonth.available, practicallyPending);
+    technicalLine = 'practically pending (members): <b style="color:var(--ink)">' + practicallyPending + '</b><br>' +
+      'technically pending (min-bid months): <b style="color:var(--teal)">' + technicalMonths + '</b><br>';
+  }
+  document.getElementById('stateBox').innerHTML =
+    'members: <b style="color:var(--ink)">' + members.length + '</b><br>' +
+    'won so far: <b style="color:var(--ink)">' + won + ' / ' + members.length + '</b><br>' +
+    technicalLine +
+    'status: <b style="color:var(--ink)">' + (cycleClosed ? 'cycle closed' : 'in progress') + '</b>';
+}
+
+function renderMonths(){
+  const box = document.getElementById('months');
+  box.innerHTML = '';
+  months.forEach((month, mi) => {
+    const div = document.createElement('div');
+    div.className = 'month-block';
+    let head = '<div class="month-head"><div class="m-title">MONTH ' + month.index + '</div><div class="month-stats">' +
+      '<div class="stat">pot <b>' + fmt(month.fullPot) + '</b></div>' +
+      (month.deferredIn ? '<div class="stat">less deferred-in <b>' + fmt(month.deferredIn) + '</b></div>' : '') +
+      '<div class="stat">available <b>' + fmt(month.available) + '</b></div>' +
+      '<div class="stat">collected/head <b>' + fmt(month.collectionPerHead) + '</b></div>' +
+      '</div></div>';
+    div.innerHTML = head;
+
+    month.rounds.forEach(r => {
+      const mc = (r.winnerId !== undefined && r.winnerId !== null) ? memberColorById(r.winnerId) : 'var(--teal)';
+      if(r.isFloorSettle){
+        div.innerHTML += '<div class="round-card" style="border-left-color:' + mc + ';"><div class="rname" style="color:' + mc + ';">' + r.winnerName + '<span class="tag floor">no bid — floor settle</span></div>' +
+          '<div class="round-line"><span>entitlement</span><b>' + fmt(r.entitlement) + '</b></div>' +
+          '<div class="round-line"><span>paid now</span><b>' + fmt(r.paidNow) + '</b></div></div>';
+      } else {
+        div.innerHTML += '<div class="round-card" style="border-left-color:' + mc + ';"><div class="rname" style="color:' + mc + ';">' + r.winnerName + (r.deferred ? '<span class="tag deferred">deferred</span>' : '<span class="tag settled">settled</span>') + '</div>' +
+          '<div class="round-line"><span>bid</span><b>' + fmt(r.bid) + '</b></div>' +
+          '<div class="round-line"><span>entitlement</span><b>' + fmt(r.entitlement) + '</b></div>' +
+          '<div class="round-line"><span>paid now</span><b>' + fmt(r.paidNow) + '</b></div>' +
+          (r.deferred ? '<div class="round-line"><span>deferred</span><b>' + fmt(r.deferred) + '</b></div>' : '') +
+          '</div>';
+      }
+    });
+
+    month.extraCollections.forEach(ec => {
+      div.innerHTML += '<div class="settle-note">Top-up for <b>' + ec.reason + '</b>: ' + fmt(ec.perHead) + ' extra per member (' + fmt(ec.total) + ' total).</div>';
+    });
+
+    if(month.isFinalSettle){
+      div.innerHTML += '<div class="settle-note">Only one member left uncontested — settled at the floor payout of <b>' + fmt(month.finalPayout) + '</b> (pot minus ' + fmt(config.floor) + ' floor). Collection reduced to <b>' + fmt(month.collectionPerHead) + '</b> per member instead of the full ' + fmt(config.contribution) + '.</div>';
+    }
+    if(month.isDeferredSettleOnly){
+      div.innerHTML += '<div class="settle-note">Everyone has already won — this month exists only to pay off the pending deferred balance of <b>' + fmt(month.deferredIn) + '</b>. Collected <b>' + fmt(month.collectionPerHead) + '</b> per member to close it out. Cycle complete.</div>';
+    }
+
+    const eligible = eligibleForRound();
+    const needsRound = !month.settled && !month.isFinalSettle && eligible.length >= 2 && month.available > 0 && mi === months.length - 1 && !cycleClosed;
+
+    if(needsRound){
+      let opts = eligible.map(m => '<option value="' + m.id + '">' + m.name + '</option>').join('');
+      div.innerHTML += '<div class="bid-row-form">' +
+        '<div class="f"><span>winner</span><select id="bidWinner_' + mi + '" oninput="updateBidPreview(' + mi + ')" onchange="updateBidPreview(' + mi + ')">' + opts + '</select></div>' +
+        '<div class="f"><span>bid amount (₹) — min ' + fmt(config.floor) + '</span>' +
+          '<div class="stepper">' +
+            '<button type="button" class="step-btn" onclick="stepBid(' + mi + ',-1)">−</button>' +
+            '<input type="number" id="bidAmount_' + mi + '" min="' + config.floor + '" step="500" inputmode="numeric" oninput="updateBidPreview(' + mi + ')">' +
+            '<button type="button" class="step-btn" onclick="stepBid(' + mi + ',1)">+</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bid-preview" id="bidPreview_' + mi + '"></div>' +
+        '<button type="button" class="wide" onclick="submitBid(' + mi + ')">Record bid</button>' +
+        '<div class="error-msg" id="bidErr_' + mi + '"></div></div>';
+    } else if(!month.rounds.length && !month.isFinalSettle && !month.isDeferredSettleOnly){
+      div.innerHTML += '<div class="empty-hint">Waiting on setup…</div>';
+    }
+    box.appendChild(div);
+  });
+
+  if(cycleClosed){
+    const div = document.createElement('div');
+    div.className = 'panel';
+    let rows = '';
+    members.forEach(m => {
+      const net = m.totalReceived - m.totalPaidIn;
+      rows += '<tr><td style="color:' + memberColorById(m.id) + ';font-weight:700;">' + m.name + '</td><td>' + (m.wonMonth ? ('M' + m.wonMonth) : '—') + '</td>' +
+        '<td class="num">' + fmt(m.totalPaidIn) + '</td><td class="num">' + fmt(m.totalReceived) + '</td>' +
+        '<td class="num ' + (net>=0?'pos':'neg') + '">' + (net>=0?'+':'') + fmt(net) + '</td></tr>';
+    });
+    div.innerHTML = '<h2>Cycle closed — net position</h2><table class="summary"><thead><tr><th>Member</th><th>Won</th><th class="num">Paid in</th><th class="num">Received</th><th class="num">Net</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    box.appendChild(div);
+  }
+}
+
+/* ---------- Rendering: Projection ---------- */
+// Given a principal, a fixed monthly installment (the chit's own monthly contribution), and a
+// tenure in months, solve for the monthly interest rate at which a reducing-balance loan for
+// that principal, paid off with exactly that installment over that tenure, would balance out.
+// This is the chit's "implied annualized rate" — negative means the member effectively earned
+// interest rather than paid it (installment was more generous than the principal/tenure needed).
+function impliedAnnualRate(principal, fixedInstallment, tenure){
+  if(tenure <= 0 || principal <= 0) return 0;
+  function requiredInstallment(rm){
+    if(Math.abs(rm) < 1e-9) return principal / tenure;
+    const factor = Math.pow(1+rm, tenure);
+    return principal * rm * factor / (factor - 1);
+  }
+  let lo = -0.9, hi = 5; // generous monthly-rate bounds
+  const loVal = requiredInstallment(lo), hiVal = requiredInstallment(hi);
+  if(fixedInstallment <= loVal) return lo * 12 * 100;
+  if(fixedInstallment >= hiVal) return hi * 12 * 100;
+  for(let i=0;i<80;i++){
+    const mid = (lo+hi)/2;
+    const val = requiredInstallment(mid);
+    if(val < fixedInstallment) lo = mid; else hi = mid;
+  }
+  return ((lo+hi)/2) * 12 * 100;
+}
+
+function renderProjection(){
+  const box = document.getElementById('projResults');
+  const rate = parseFloat(document.getElementById('loanRate').value) || 0;
+  const method = document.getElementById('loanMethod').value;
+  box.innerHTML = '';
+
+  const winners = members.filter(m => m.won && m.wonMonth !== null).sort((a,b)=>a.wonMonth-b.wonMonth);
+  if(winners.length === 0){
+    box.innerHTML = '<div class="empty-hint">Record some bids in the Simulator tab first — this compares each winner\'s effective chit cost against a bank loan for the same amount.</div>';
+    return;
+  }
+
+  // Work out the range of possible total cycle lengths from where things stand right now.
+  let Lmin, Lmax;
+  if(cycleClosed){
+    Lmin = Lmax = months.length;
+  } else {
+    const remainingEligible = eligibleForRound().length;
+    const completedFullMonths = months.filter(mo => mo.settled).length;
+    const currentMonth = months[months.length - 1];
+    // Best case: whoever is left all gets cleared within the currently active month via cascading.
+    Lmin = months.length;
+    // Worst case: everyone left bids exactly the floor from here on — cascading can still fit
+    // more than one winner per month, so this is tighter than a naive one-per-month count.
+    Lmax = completedFullMonths + simulateTechnicalMonths(currentMonth.available, remainingEligible);
+    if(Lmax < Lmin) Lmax = Lmin;
+  }
+  const isRangeUncertain = !cycleClosed;
+
+  if(isRangeUncertain){
+    const note = document.createElement('div');
+    note.className = 'settle-note';
+    note.style.marginBottom = '12px';
+    note.innerHTML = 'The cycle isn\'t finished yet, so remaining installments are shown as a range: <b>best case</b> assumes everyone left gets cleared in one cascading month, <b>worst case</b> assumes everyone left bids exactly the minimum floor from here on (still cascading where the pot allows it).';
+    box.appendChild(note);
+  }
+
+  winners.forEach(m => {
+    const tMin = Math.max(Lmin - m.wonMonth, 0);
+    const tMax = Math.max(Lmax - m.wonMonth, 0);
+    const isFixed = (tMin === tMax);
+    // Principal includes any pending amount still owed (deferred to next month) — it's
+    // effectively theirs from the day they won, so it counts toward the interest comparison now.
+    const principal = m.entitlementTotal;
+    const pendingNow = Math.max(m.entitlementTotal - m.totalReceived, 0);
+    const div = document.createElement('div');
+    div.className = 'proj-card';
+
+    if(tMax <= 0){
+      div.style.borderLeft = '4px solid ' + memberColorById(m.id);
+      div.innerHTML = '<div class="pname" style="color:' + memberColorById(m.id) + ';">' + m.name + ' — won month ' + m.wonMonth + '</div>' +
+        '<div class="proj-line"><span>received</span><b>' + fmt(principal) + '</b></div>' +
+        '<div class="verdict neutral">Won at the very end — no early-access cost to compare against a loan.</div>';
+      box.appendChild(div);
+      return;
+    }
+
+    const chitMonthlyInstallment = config.contribution;
+    // What annualized rate would make a bank loan behave exactly like this chit outcome —
+    // same principal, same fixed monthly installment, same tenure?
+    const rateMin = impliedAnnualRate(principal, chitMonthlyInstallment, tMin || 1);
+    const rateMax = impliedAnnualRate(principal, chitMonthlyInstallment, tMax || 1);
+    const tenureLabel = isFixed ? (tMin + ' months') : (tMin + '–' + tMax + ' months');
+    const rLo = Math.min(rateMin, rateMax), rHi = Math.max(rateMin, rateMax);
+    const rateLabel = isFixed ? (rLo.toFixed(1) + '%') : (rLo.toFixed(1) + '% – ' + rHi.toFixed(1) + '%');
+    const rateForVerdict = isFixed ? rLo : rHi; // conservative: worst case for open cycles
+
+    let verdictHtml;
+    if(rateForVerdict < 0){
+      verdictHtml = '<div class="verdict chit">This works out to the member effectively <b>earning</b> around ' + Math.abs(rateForVerdict).toFixed(1) + '% annualized through the chit — better than any loan, since loans only cost you.</div>';
+    } else if(rateForVerdict < rate){
+      verdictHtml = '<div class="verdict chit">Effective chit rate ≈ ' + rateForVerdict.toFixed(1) + '% vs. bank\'s ' + rate + '% — chit works out cheaper by about ' + (rate - rateForVerdict).toFixed(1) + ' points.</div>';
+    } else if(rateForVerdict > rate){
+      verdictHtml = '<div class="verdict loan">Effective chit rate ≈ ' + rateForVerdict.toFixed(1) + '% vs. bank\'s ' + rate + '% — a bank loan would\'ve worked out cheaper by about ' + (rateForVerdict - rate).toFixed(1) + ' points.</div>';
+    } else {
+      verdictHtml = '<div class="verdict neutral">Effective chit rate ≈ ' + rateForVerdict.toFixed(1) + '%, about the same as the bank\'s ' + rate + '%.</div>';
+    }
+
+    div.style.borderLeft = '4px solid ' + memberColorById(m.id);
+    div.innerHTML = '<div class="pname" style="color:' + memberColorById(m.id) + ';">' + m.name + ' — won month ' + m.wonMonth + '</div>' +
+      '<div class="proj-line"><span>amount received' + (pendingNow > 0 ? ' (incl. pending)' : '') + '</span><b>' + fmt(principal) + '</b></div>' +
+      (pendingNow > 0 ? '<div class="proj-line"><span>&nbsp;&nbsp;— of which still pending</span><b>' + fmt(pendingNow) + '</b></div>' : '') +
+      '<hr style="border:none;border-top:1px dashed var(--rule);margin:8px 0;">' +
+      '<div class="proj-line"><span>fixed monthly installment</span><b>' + fmt(chitMonthlyInstallment) + '</b></div>' +
+      '<div class="proj-line"><span>tenure</span><b>' + tenureLabel + '</b></div>' +
+      '<div class="proj-line"><span>implied annualized rate (chit)</span><b>' + rateLabel + '</b></div>' +
+      '<div class="proj-line"><span>bank rate (your setting)</span><b>' + rate + '%</b></div>' +
+      verdictHtml;
+    box.appendChild(div);
+  });
+}
+
+document.getElementById('loanRate').addEventListener('input', renderProjection);
+document.getElementById('loanMethod').addEventListener('change', renderProjection);
+
+/* ---------- Wire up ---------- */
+document.getElementById('cfgCount').addEventListener('input', renderNameInputs);
+document.getElementById('btnRebuild').addEventListener('click', buildGroup);
+document.getElementById('btnReset').addEventListener('click', () => {
+  if(activeFundId){
+    const name = (fundsStore.funds[activeFundId] && fundsStore.funds[activeFundId].name) || 'My Chit Fund';
+    fundsStore.funds[activeFundId] = defaultFundState(name);
+  }
+  document.getElementById('cfgCount').value = 5;
+  document.getElementById('cfgContribution').value = 5000;
+  document.getElementById('cfgFloor').value = 10000;
+  const deferRadio = document.querySelector('input[name=shortfall][value="defer"]');
+  if(deferRadio) deferRadio.checked = true;
+  members = [];
+  renderNameInputs();
+  buildGroup();
+});
+document.getElementById('btnNewFund').addEventListener('click', createFund);
+document.getElementById('newFundName').addEventListener('keydown', (e) => { if(e.key === 'Enter') createFund(); });
+
+/* ---------- Init: load saved chit funds, migrating an old single-fund save if found ---------- */
+(function init(){
+  let store = null;
+  try{
+    const raw = localStorage.getItem(FUNDS_KEY);
+    if(raw) store = JSON.parse(raw);
+  }catch(e){}
+
+  if(!store || !store.funds || !Object.keys(store.funds).length){
+    let migrated = null;
+    try{
+      const oldRaw = localStorage.getItem(OLD_SINGLE_KEY);
+      if(oldRaw){
+        const old = JSON.parse(oldRaw);
+        if(old && old.members) migrated = old;
+      }
+    }catch(e){}
+    store = {activeId:null, funds:{}};
+    if(migrated){
+      const id = newFundId();
+      store.funds[id] = Object.assign({name:'My Chit Fund'}, migrated);
+      store.activeId = id;
+    }
+  }
+
+  if(!store.activeId || !store.funds[store.activeId]){
+    const id = newFundId();
+    store.funds[id] = defaultFundState('My Chit Fund');
+    store.activeId = id;
+  }
+
+  fundsStore = store;
+  activateFund(fundsStore.activeId);
+
+  // Local render happens immediately above; shared sync connects in the background
+  // (window.claude may not exist at all outside a claude.ai viewer) and upgrades the
+  // view to live multi-device data once it resolves, without blocking first paint.
+  if(window.claude && typeof window.claude.use === 'function'){
+    initSharedSync();
+  } else {
+    updateSyncStatusUI();
+  }
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch((err) => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script src="ads.js"></script>
+</body>
+</html>

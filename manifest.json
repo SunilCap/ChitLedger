@@ -1,0 +1,16 @@
+{
+  "name": "Chit Ledger — Bidding Simulator",
+  "short_name": "Chit Ledger",
+  "description": "Configurable bidding simulator for rotating chit funds, with a loan-vs-chit cost comparison.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF6E8",
+  "theme_color": "#F2A93B",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
