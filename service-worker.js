@@ -10,6 +10,7 @@ const FONT_CACHE = 'chit-ledger-fonts-v1';
 const SHELL_FILES = [
   './',
   './index.html',
+  './ads.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
