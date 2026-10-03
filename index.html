@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Chit Ledger — Bidding Simulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -39,14 +39,26 @@
     padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--ad-banner-height));
   }
   *{box-sizing:inherit;}
-  html{scroll-padding-top:env(safe-area-inset-top,0px);}
-  html,body{height:100%;}
+  html{
+    scroll-padding-top:env(safe-area-inset-top,0px);
+    scroll-behavior:smooth;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+  html,body{height:100%; min-height:100dvh; overflow-x:hidden;}
   body{
     margin:0;
     background:var(--paper);
     color:var(--ink);
     font-family:'Source Serif 4', Georgia, serif;
     -webkit-font-smoothing:antialiased;
+    /* App-like touch behavior: kills the double-tap-to-zoom gesture and the ~300ms tap
+       delay while still allowing pinch-zoom (left on, for accessibility). Removes the
+       blue/grey flash Android shows on tap. Stops the rubber-band/pull-to-refresh bounce
+       so scrolling feels like a native app rather than a browser tab. */
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -178,7 +190,9 @@
   input[type=number], input[type=text], select{
     width:100%;
     font-family:'JetBrains Mono',monospace;
-    font-size:calc(16px * var(--font-scale));
+    /* Never below 16px: iOS Safari auto-zooms on focus for smaller inputs, which would
+       fight the locked viewport above. The text-size control can still scale this up. */
+    font-size:max(16px, calc(16px * var(--font-scale)));
     padding:10px 10px;
     background:var(--paper);
     border:1.5px solid var(--rule);
@@ -207,8 +221,14 @@
     cursor:pointer;
     min-height:44px;
     box-shadow:0 2px 8px rgba(14,138,138,0.25);
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+    transition:transform 0.08s ease, box-shadow 0.08s ease;
   }
+  button:active{transform:scale(0.97);box-shadow:0 1px 3px rgba(14,138,138,0.2);}
   button.secondary{background:var(--paper-card);color:var(--ink);border:1.5px solid var(--rule);box-shadow:none;}
+  button.secondary:active{box-shadow:none;}
   button.wide{width:100%;}
   button:disabled{opacity:0.4;cursor:not-allowed;}
   .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
@@ -441,7 +461,7 @@ function shortfallMode(){ return document.querySelector('input[name=shortfall]:c
 function fmt(n){ n = Math.round(n); return '₹' + n.toLocaleString('en-IN'); }
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.3';
+const APP_VERSION = 'v1.4';
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
   if(badge) badge.textContent = APP_VERSION;

@@ -3,7 +3,7 @@
    - Cache-first for same-origin files; stale-while-revalidate for Google Fonts.
    - Bump CACHE_VERSION whenever you deploy changes so users get the update. */
 
-const CACHE_VERSION = 'v1.3';
+const CACHE_VERSION = 'v1.4';
 const SHELL_CACHE = 'chit-ledger-shell-' + CACHE_VERSION;
 const FONT_CACHE = 'chit-ledger-fonts-v1';
 
