@@ -339,6 +339,22 @@
   .verdict.loan{background:rgba(217,67,46,0.15);color:var(--maroon);border:1px solid rgba(217,67,46,0.3);}
   .verdict.neutral{background:rgba(242,169,59,0.18);color:#946200;border:1px solid rgba(242,169,59,0.4);}
 
+  .hold-box{border-top:1px dashed var(--rule);padding-top:12px;margin-top:2px;display:flex;flex-direction:column;gap:8px;}
+  .hold-box .f span{font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);display:block;margin-bottom:5px;}
+  .held-item{border-top:1px solid var(--rule);padding:10px 0;}
+  .held-item select, .held-item input[type=text]{margin-top:6px;}
+  .edit-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  button.mini{min-height:34px;padding:5px 12px;font-size:calc(11.5px * var(--font-scale));background:var(--paper-card);color:var(--purple);border:1.5px solid var(--rule);box-shadow:none;}
+  .edit-form{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding:10px;background:var(--paper-2);border-radius:8px;}
+  .edit-form .f span{font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);display:block;margin-bottom:5px;}
+  .rules-text{font-size:calc(13px * var(--font-scale));line-height:1.6;color:var(--ink-soft);}
+  .rules-text h3{font-family:'JetBrains Mono',monospace;font-size:calc(12px * var(--font-scale));color:var(--purple);margin:14px 0 6px;}
+  .rules-text h3:first-child{margin-top:0;}
+  .rules-text p{margin:0 0 6px;}
+  .rules-text ul{margin:0;padding-left:20px;}
+  .rules-text li{margin-bottom:5px;}
+  .rules-text b{color:var(--ink);}
+  .rules-hint{font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);line-height:1.5;margin-bottom:8px;}
   footer.foot{margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:calc(10.5px * var(--font-scale));color:var(--ink-soft);text-align:center;line-height:1.6;}
 </style>
 </head>
@@ -348,6 +364,7 @@
   <header class="masthead">
     <h1>🪙 Chit Ledger <span class="version-badge" id="versionBadge"></span></h1>
     <div class="tagline">Configurable bidding simulator for rotating chit groups, with a loan-vs-chit cost projection.</div>
+    <div class="btn-row" style="margin-top:10px;"><button type="button" class="mini" id="btnRules" onclick="openRules()">📖 Chit rules</button></div>
   </header>
 
   <div class="panel" id="textSizePanel" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;">
@@ -383,6 +400,13 @@
       <summary>Group setup</summary>
       <div class="inner">
         <label class="field">
+          <span>Chit rules</span>
+          <select id="cfgRules" onchange="onRuleChange(this.value)"></select>
+        </label>
+        <div class="rules-hint" id="rulesBlurb"></div>
+        <div class="rules-hint" id="rulesLockNote"></div>
+        <div class="btn-row" style="margin:0 0 16px;"><button type="button" class="secondary" onclick="openRules()">📖 View rules</button></div>
+        <label class="field">
           <span>Number of members</span>
           <input type="number" id="cfgCount" min="2" max="20" value="5" inputmode="numeric">
         </label>
@@ -399,7 +423,7 @@
       </div>
     </details>
 
-    <details class="panel">
+    <details class="panel" id="shortfallDetails">
       <summary>Shortfall rule</summary>
       <div class="inner">
         <div class="radio-group">
@@ -448,6 +472,16 @@
     <div id="projResults" style="margin-top:14px;"></div>
   </div>
 
+  <!-- RULES PAGE (opened from the "Chit rules" button; not part of the tab bar) -->
+  <div class="tab-panel" id="tabRules">
+    <div class="btn-row" style="margin:0 0 12px;"><button type="button" class="secondary" onclick="closeRules()">← Back</button></div>
+    <div class="panel">
+      <h2>Chit rules</h2>
+      <div class="rules-text" id="rulesIntro"></div>
+    </div>
+    <div id="rulesList" style="margin-top:14px;"></div>
+  </div>
+
   <!-- EXPORT TAB -->
   <div class="tab-panel" id="tabExport">
     <div class="panel">
@@ -494,12 +528,18 @@ let members = [];
 let months = [];
 let cycleClosed = false;
 let config = {count:5, contribution:5000, floor:10000};
+const DEFAULT_RULE_ID = 'cascade';
+let ruleId = DEFAULT_RULE_ID; // which chit rule set this fund uses — chosen before the first bid, then locked
+const CHIT_RULES = {};        // registry, filled by registerChitRules() below
+let actions = []; // ordered log of every recorded bid / hold — the source of truth that edits replay from
+let editing = null; // index into actions of the entry currently open for editing (UI only, not saved)
+let heldFunds = []; // leftover pot amounts set aside until the cycle closes: {id, month, amount, decision, note}
 
 function shortfallMode(){ return document.querySelector('input[name=shortfall]:checked').value; }
 function fmt(n){ n = Math.round(n); return '₹' + n.toLocaleString('en-IN'); }
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.5';
+const APP_VERSION = 'v1.8';
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
   if(badge) badge.textContent = APP_VERSION;
@@ -585,7 +625,7 @@ let activeFundId = null;
 
 function newFundId(){ return 'f_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
 function defaultFundState(name){
-  return {name, config:{count:5, contribution:5000, floor:10000}, members:[], months:[], cycleClosed:false, shortfallMode:'defer'};
+  return {name, config:{count:5, contribution:5000, floor:10000}, members:[], months:[], cycleClosed:false, heldFunds:[], actions:[], ruleId:DEFAULT_RULE_ID, shortfallMode:'defer'};
 }
 function persistFundsStore(){
   try{
@@ -597,7 +637,7 @@ function persistFundsStore(){
 function saveState(){
   if(!activeFundId) return;
   const existingName = (fundsStore.funds[activeFundId] && fundsStore.funds[activeFundId].name) || 'My Chit Fund';
-  const doc = {name: existingName, config, members, months, cycleClosed, shortfallMode: shortfallMode(), updatedAt: Date.now(), updatedById: viewerId || null};
+  const doc = {name: existingName, config, members, months, cycleClosed, heldFunds, actions, ruleId, shortfallMode: shortfallMode(), updatedAt: Date.now(), updatedById: viewerId || null};
   fundsStore.funds[activeFundId] = doc;
   fundsStore.activeId = activeFundId;
   persistFundsStore();
@@ -646,6 +686,10 @@ function loadFundDataIntoLive(f){
   members = (f.members || []).map(m => Object.assign({entitlementTotal:0}, m));
   months = f.months || [];
   cycleClosed = !!f.cycleClosed;
+  heldFunds = f.heldFunds || [];
+  actions = f.actions ? f.actions : reconstructActions(f);
+  ruleId = f.ruleId || DEFAULT_RULE_ID;
+  editing = null;
 }
 
 async function initSharedSync(){
@@ -719,6 +763,115 @@ function subscribeSharedFunds(){
   });
 }
 
+/* ---------- Chit rules: registry ----------
+   Each chit fund uses ONE rule set, picked in Group setup before the first bid and locked once
+   bidding starts. The rest of the app never calls the bidding functions directly — it goes
+   through R() (the active fund's rule set), so a new kind of chit is one more registerChitRules()
+   call. A rule set provides:
+     id, name, short        — shown in the picker and on the Rules page
+     caps                   — {hold, shortfall}: which optional UI this rule set uses
+     startNewMonth()        — opens the next month (collections, auto-settles, closing)
+     applyBid(a, idx)       — validates + applies one bid; returns an error string or null
+     applyHold(a, idx)      — same, for setting leftover aside
+     technicalMonths(avail, remaining) — worst-case months still to run (for estimates)
+     rulesHtml(cfg)         — the rules text for the Rules page (may use the fund's settings)
+   applyBid/applyHold must validate BEFORE mutating, because edits replay the whole log. */
+function registerChitRules(def){ CHIT_RULES[def.id] = def; }
+function R(){ return CHIT_RULES[ruleId] || CHIT_RULES[DEFAULT_RULE_ID]; }
+
+function cascadeRulesHtml(cfg){
+  const pot = cfg.count * cfg.contribution;
+  return '<div class="rules-text">' +
+    '<h3>Your current setup</h3>' +
+    '<p>' + cfg.count + ' members × ' + fmt(cfg.contribution) + ' per month = a monthly pot of <b>' + fmt(pot) + '</b>. Minimum bid (floor): <b>' + fmt(cfg.floor) + '</b>.</p>' +
+    '<h3>The basics</h3><ul>' +
+      '<li>Every member pays the fixed monthly amount every month — including members who have already won.</li>' +
+      '<li>Every member wins exactly once. A winner is removed from all later bidding.</li></ul>' +
+    '<h3>Bidding</h3><ul>' +
+      '<li>In each round, members bid a <b>discount</b> off the pot. No bid can be below the floor.</li>' +
+      '<li>The highest bid wins. The winner\'s payout (entitlement) is <b>pot − bid</b>.</li>' +
+      '<li>The discount isn\'t paid to anyone — it stays in that month\'s pot.</li></ul>' +
+    '<h3>Cascading rounds</h3><ul>' +
+      '<li>If money is left in the pot after a payout and two or more members are still waiting, another round starts straight away in the same month.</li>' +
+      '<li>A month ends when its pot is used up.</li></ul>' +
+    '<h3>When a payout is bigger than the pot left</h3><ul>' +
+      '<li><b>Defer to next month</b> (default): pay what\'s available now. The balance is owed to that winner and credited first thing next month, before any new bidding — so it reduces next month\'s pot.</li>' +
+      '<li><b>Top up now</b>: collect the shortfall as an equal extra amount from all members immediately.</li>' +
+      '<li>The choice is set in the "Shortfall rule" section and applies to each bid as it is recorded.</li></ul>' +
+    '<h3>The last member</h3><ul>' +
+      '<li>If exactly one member remains when a month opens, they settle automatically at <b>pot − floor</b>, with no bidding. That month\'s collection shrinks to just what is owed (their payout plus any deferred balance, split across members).</li>' +
+      '<li>If one member remains part-way through a month, they receive whatever is left in that month\'s pot.</li>' +
+      '<li>If a deferred balance is still owed after everyone has won, one final month collects it and then the cycle closes.</li></ul>' +
+    '<h3>Holding leftover for the end</h3><ul>' +
+      '<li>Instead of running another round, the group can set some or all of the leftover pot aside. Held money isn\'t paid to anyone and doesn\'t change later collections.</li>' +
+      '<li>When the cycle closes, each held amount is shared equally among members, kept for group use (development / expenses), or marked other.</li></ul>' +
+    '<h3>Estimates shown in the app</h3><ul>' +
+      '<li><b>Technically pending months</b> is the worst case: everyone still waiting bids exactly the floor from here on, with cascading still applied.</li>' +
+      '<li>The loan comparison turns each winner\'s outcome into an equivalent annualized rate (reducing-balance maths) to set against a bank rate. While a cycle is still running it shows a best-to-worst range.</li></ul>' +
+    '<h3>Corrections</h3>' +
+    '<p>Any recorded bid or hold can be edited or removed. The fund is recalculated from the start, and a change is refused if a later entry would no longer fit.</p>' +
+  '</div>';
+}
+
+registerChitRules({
+  id: 'cascade',
+  name: 'Cascading Auction',
+  short: 'Open bidding on a monthly pot. Leftover pot triggers more rounds in the same month until it\'s used up.',
+  caps: {hold: true, shortfall: true},
+  startNewMonth: startNewMonth,
+  applyBid: applyBid,
+  applyHold: applyHold,
+  technicalMonths: simulateTechnicalMonths,
+  rulesHtml: cascadeRulesHtml
+});
+
+/* ---------- Chit rules: picker (Group setup) and Rules page ---------- */
+function renderRuleSelector(){
+  const sel = document.getElementById('cfgRules');
+  if(!sel) return;
+  const ids = Object.keys(CHIT_RULES);
+  sel.innerHTML = ids.map(id => '<option value="' + id + '"' + (CHIT_RULES[id] === R() ? ' selected' : '') + '>' + escapeHtml(CHIT_RULES[id].name) + '</option>').join('');
+  const locked = actions.length > 0;
+  sel.disabled = locked || ids.length < 2;
+  document.getElementById('rulesBlurb').textContent = R().short;
+  document.getElementById('rulesLockNote').textContent = locked
+    ? '🔒 Locked — bidding has started. Reset the simulation or start a new chit fund to use different rules.'
+    : (ids.length < 2 ? 'More chit rule sets will appear here — you\'ll pick one before the first bid.' : 'Pick before the first bid. It locks once bidding starts.');
+  const sf = document.getElementById('shortfallDetails');
+  if(sf) sf.style.display = R().caps.shortfall ? '' : 'none';
+}
+function onRuleChange(value){
+  if(actions.length > 0 || !CHIT_RULES[value]){ renderRuleSelector(); return; }
+  ruleId = value;
+  buildGroup(); // nothing recorded yet, so rebuild month 1 under the new rules
+  document.getElementById('setupDetails').setAttribute('open', '');
+}
+function renderRulesPage(){
+  const intro = document.getElementById('rulesIntro');
+  const list = document.getElementById('rulesList');
+  if(!intro || !list) return;
+  const fundName = (fundsStore.funds[activeFundId] && fundsStore.funds[activeFundId].name) || 'this chit fund';
+  const locked = actions.length > 0;
+  intro.innerHTML = '<p>Rules in use for <b>' + escapeHtml(fundName) + '</b>: <b style="color:var(--purple);">' + escapeHtml(R().name) + '</b>.</p>' +
+    '<p>' + (locked
+      ? 'They\'re locked because bidding has started. To use different rules, start a new chit fund or reset this simulation.'
+      : 'You can change them in <b>Group setup</b> until the first bid is recorded.') + '</p>';
+  list.innerHTML = '';
+  Object.keys(CHIT_RULES).forEach(id => {
+    const r = CHIT_RULES[id];
+    const active = (r === R());
+    const d = document.createElement('details');
+    d.className = 'panel';
+    if(active) d.setAttribute('open', '');
+    d.innerHTML = '<summary><span>' + escapeHtml(r.name) + (active ? ' <span class="tag settled">in use</span>' : '') + '</span></summary>' +
+      '<div class="inner"><div class="settle-note" style="margin-bottom:12px;">' + escapeHtml(r.short) + '</div>' + r.rulesHtml(config) + '</div>';
+    list.appendChild(d);
+  });
+}
+let lastTab = 'sim';
+function openRules(){ renderRulesPage(); switchTab('rules'); window.scrollTo(0, 0); }
+function closeRules(){ switchTab(lastTab); }
+
 /* ---------- Tabs ---------- */
 document.getElementById('tabBtnSim').addEventListener('click', () => switchTab('sim'));
 document.getElementById('tabBtnProj').addEventListener('click', () => switchTab('proj'));
@@ -730,6 +883,8 @@ function switchTab(which){
   document.getElementById('tabSim').classList.toggle('active', which==='sim');
   document.getElementById('tabProj').classList.toggle('active', which==='proj');
   document.getElementById('tabExport').classList.toggle('active', which==='export');
+  document.getElementById('tabRules').classList.toggle('active', which==='rules');
+  if(which !== 'rules') lastTab = which;
   if(which==='proj') renderProjection();
   if(which==='export') renderExportTab();
 }
@@ -838,7 +993,7 @@ function csvEscape(val){
 function exportSelectedAsCSV(){
   const ids = getSelectedExportFundIds();
   if(!ids.length){ alert('Pick at least one chit fund to export.'); return; }
-  const header = ['Fund', 'Month', 'Winner', 'Bid', 'Entitlement', 'Paid Now', 'Deferred', 'Collection Per Head', 'Notes'];
+  const header = ['Fund', 'Month', 'Winner', 'Bid', 'Entitlement', 'Paid Now', 'Deferred', 'Collection Per Head', 'Notes', 'Held Amount'];
   const rows = [header];
 
   ids.forEach(id => {
@@ -857,6 +1012,11 @@ function exportSelectedAsCSV(){
       if(!month.rounds || !month.rounds.length){
         rows.push([fname, month.index, '', '', '', '', '', month.collectionPerHead, 'No winner recorded yet this month']);
       }
+      (month.holds || []).forEach(h => {
+        const hf = (f.heldFunds || []).find(x => x.id === h.id);
+        const decision = hf ? (hf.decision ? heldDecisionLabel(hf) + (hf.note ? ' (' + hf.note + ')' : '') : 'undecided') : 'undecided';
+        rows.push([fname, month.index, 'HELD FUND', '', '', '', '', month.collectionPerHead, 'Held from leftover pot for closing — ' + decision, h.amount]);
+      });
     });
   });
 
@@ -893,14 +1053,19 @@ function monthRowsForPdf(f){
       const notes = r.isFloorSettle ? 'No bid — last member, floor settle' : (r.deferred ? 'Shortfall deferred to next month' : 'Fully settled');
       out.push([month.index, r.winnerName, r.bid === null ? '—' : fmt(r.bid), fmt(r.entitlement), fmt(r.paidNow), r.deferred ? fmt(r.deferred) : '—', notes]);
     });
+    (month.holds || []).forEach(h => out.push([month.index, 'HELD', '', '', '', '', 'Held ' + fmt(h.amount) + ' from leftover pot for closing']));
   });
   return out;
 }
 
 function summaryRowsForPdf(f){
+  const share = heldRefundPerMemberFor(f);
   return (f.members || []).map(m => {
-    const net = (m.totalReceived||0) - (m.totalPaidIn||0);
-    return [m.name, m.wonMonth ? ('Month ' + m.wonMonth) : '—', fmt(m.totalPaidIn||0), fmt(m.totalReceived||0), (net>=0?'+':'') + fmt(net)];
+    const net = (m.totalReceived||0) + share - (m.totalPaidIn||0);
+    const row = [m.name, m.wonMonth ? ('Month ' + m.wonMonth) : '—', fmt(m.totalPaidIn||0), fmt(m.totalReceived||0)];
+    if(share > 0) row.push(fmt(share));
+    row.push((net>=0?'+':'') + fmt(net));
+    return row;
   });
 }
 
@@ -969,8 +1134,9 @@ async function generatePDF(){
       '   Minimum floor: ' + fmt(cfg.floor||0) + '   Status: ' + (f.cycleClosed ? 'Closed' : 'In progress'),
       14, 25
     );
+    doc.text('Chit rules: ' + ((CHIT_RULES[f.ruleId || DEFAULT_RULE_ID] || {}).name || (f.ruleId || DEFAULT_RULE_ID)), 14, 30);
     doc.setTextColor(0);
-    let y = 32;
+    let y = 37;
 
     if(includeLedger){
       const rows = monthRowsForPdf(f);
@@ -992,13 +1158,27 @@ async function generatePDF(){
         y += 4;
         doc.autoTable({
           startY: y,
-          head: [['Member', 'Won', 'Paid In', 'Received', 'Net']],
+          head: [heldRefundPerMemberFor(f) > 0 ? ['Member', 'Won', 'Paid In', 'Received', 'Held Share', 'Net'] : ['Member', 'Won', 'Paid In', 'Received', 'Net']],
           body: summaryRowsForPdf(f),
           styles: {fontSize: 8},
           headStyles: {fillColor: [30, 158, 107]},
           margin: {left: 14, right: 14}
         });
         y = doc.lastAutoTable.finalY + 10;
+        if((f.heldFunds || []).length){
+          doc.setFontSize(11);
+          doc.text('Held funds', 14, y);
+          y += 4;
+          doc.autoTable({
+            startY: y,
+            head: [['Month', 'Amount', 'Decision', 'Note']],
+            body: f.heldFunds.map(h => ['Month ' + h.month, fmt(h.amount), heldDecisionLabel(h), h.note || '']),
+            styles: {fontSize: 8},
+            headStyles: {fillColor: [242, 169, 59]},
+            margin: {left: 14, right: 14}
+          });
+          y = doc.lastAutoTable.finalY + 10;
+        }
       } else {
         doc.setFontSize(9);
         doc.setTextColor(150);
@@ -1169,8 +1349,11 @@ function buildGroup(){
     members.push({id:i, name:nm, won:false, wonMonth:null, totalPaidIn:0, totalReceived:0, entitlementTotal:0});
   }
   months = [];
+  heldFunds = [];
+  actions = [];
+  editing = null;
   cycleClosed = false;
-  startNewMonth();
+  R().startNewMonth();
   document.getElementById('setupDetails').removeAttribute('open');
   renderAll();
 }
@@ -1191,7 +1374,7 @@ function startNewMonth(){
 
   const month = {
     index: idx, fullPot: pot, available: pot - prevDeferred, deferredIn: prevDeferred,
-    deferredOut: 0, deferredCreditorId: null, rounds: [], settled: false, extraCollections: [],
+    deferredOut: 0, deferredCreditorId: null, rounds: [], settled: false, extraCollections: [], holds: [],
     isFinalSettle: false, isDeferredSettleOnly: false
   };
 
@@ -1228,23 +1411,24 @@ function startNewMonth(){
 /* ---------- Bidding ---------- */
 function eligibleForRound(){ return members.filter(m => !m.won); }
 
-function submitBid(monthIdx){
-  const month = months[monthIdx];
-  const sel = document.getElementById('bidWinner_' + monthIdx);
-  const amtInput = document.getElementById('bidAmount_' + monthIdx);
-  const errBox = document.getElementById('bidErr_' + monthIdx);
-  errBox.textContent = '';
-
-  const winnerId = parseInt(sel.value);
-  const bid = parseFloat(amtInput.value);
-  const winner = members.find(m=>m.id===winnerId);
-
-  if(!winner){ errBox.textContent = 'Choose a member.'; return; }
-  if(isNaN(bid) || bid <= 0){ errBox.textContent = 'Enter a valid bid amount.'; return; }
-  if(bid < config.floor){ errBox.textContent = 'Bid can\'t be below the minimum of ' + fmt(config.floor) + '.'; return; }
-
+/* Core bid logic. Validates first, mutates only if everything passes, and returns an error
+   string (or null on success). Used both for live entry and for replaying history after an edit.
+   `a` = {type:'bid', month, winnerId, bid, mode} — `mode` is the shortfall rule in force when the
+   bid was recorded, so changing the setting later never rewrites history. */
+function applyBid(a, idx){
+  const month = months[months.length - 1];
+  if(!month || cycleClosed || month.settled || month.isFinalSettle || month.isDeferredSettleOnly || month.available <= 0 || eligibleForRound().length < 2){
+    return 'There is no open bidding round at this point.';
+  }
+  if(a.month !== undefined && a.month !== month.index) return 'It would move this entry into a different month.';
+  const winner = members.find(m => m.id === a.winnerId);
+  const bid = a.bid;
+  if(!winner) return 'Choose a member.';
+  if(winner.won) return winner.name + ' has already won.';
+  if(isNaN(bid) || bid <= 0) return 'Enter a valid bid amount.';
+  if(bid < config.floor) return 'Bid can\'t be below the minimum of ' + fmt(config.floor) + '.';
   const entitlement = month.fullPot - bid;
-  if(entitlement <= 0){ errBox.textContent = 'This bid leaves zero or negative payout — check the amount.'; return; }
+  if(entitlement <= 0) return 'This bid leaves zero or negative payout — check the amount.';
 
   let paidNow, deferred = 0;
   if(entitlement <= month.available){
@@ -1252,22 +1436,22 @@ function submitBid(monthIdx){
     month.available -= paidNow;
   } else {
     const shortfall = entitlement - month.available;
-    if(shortfallMode() === 'defer'){
-      paidNow = month.available; deferred = shortfall;
-      month.available = 0; month.deferredOut += shortfall;
-      month.deferredCreditorId = winner.id;
-    } else {
+    if(a.mode === 'topup'){
       const perHead = shortfall / config.count;
       members.forEach(m => m.totalPaidIn += perHead);
       month.extraCollections.push({reason: winner.name + "'s shortfall", perHead, total: shortfall});
       paidNow = entitlement; month.available = 0;
+    } else {
+      paidNow = month.available; deferred = shortfall;
+      month.available = 0; month.deferredOut += shortfall;
+      month.deferredCreditorId = winner.id;
     }
   }
 
   winner.won = true; winner.wonMonth = month.index;
   winner.totalReceived += paidNow;
   winner.entitlementTotal += entitlement; // full amount they're owed, including any pending/deferred portion
-  month.rounds.push({ winnerName: winner.name, winnerId: winner.id, bid, entitlement, paidNow, deferred });
+  month.rounds.push({ winnerName: winner.name, winnerId: winner.id, bid, entitlement, paidNow, deferred, actionIdx: idx });
 
   const stillEligible = eligibleForRound().length;
   if(stillEligible === 0){
@@ -1282,6 +1466,19 @@ function submitBid(monthIdx){
   } else if(month.available <= 0){
     month.settled = true; startNewMonth();
   }
+  return null;
+}
+
+function submitBid(monthIdx){
+  const sel = document.getElementById('bidWinner_' + monthIdx);
+  const amtInput = document.getElementById('bidAmount_' + monthIdx);
+  const errBox = document.getElementById('bidErr_' + monthIdx);
+  errBox.textContent = '';
+  if(monthIdx !== months.length - 1){ errBox.textContent = 'Only the current month accepts bids.'; return; }
+  const a = {type:'bid', month: months[monthIdx].index, winnerId: parseInt(sel.value), bid: parseFloat(amtInput.value), mode: shortfallMode()};
+  const err = R().applyBid(a, actions.length);
+  if(err){ errBox.textContent = err; return; }
+  actions.push(a);
   renderAll();
 }
 
@@ -1293,6 +1490,184 @@ function settleFinalWithinMonth(month){
   winner.entitlementTotal += payout;
   month.rounds.push({ winnerName: winner.name, winnerId: winner.id, bid: null, entitlement: payout, paidNow: payout, deferred: 0, isFloorSettle: true });
   month.available = 0; month.settled = true; cycleClosed = true;
+}
+
+/* ---------- Holding leftover pot until the cycle closes ----------
+   After a payout leaves money in the pot, the group can either run another bid (above) or set
+   some/all of it aside. Held money isn't paid to anyone and doesn't change later months'
+   collections — it just waits, and the group decides at closing what to do with it. */
+function heldDecisionLabel(h){
+  if(h.decision === 'refund') return 'Shared equally among members';
+  if(h.decision === 'development') return 'Kept for group use (development / expenses)';
+  if(h.decision === 'other') return 'Other';
+  return 'Undecided';
+}
+function heldRefundPerMemberFor(f){
+  const list = f.heldFunds || [];
+  const n = (f.members && f.members.length) || (f.config && f.config.count) || 1;
+  return list.filter(h => h.decision === 'refund').reduce((sum, h) => sum + h.amount, 0) / n;
+}
+function heldRefundPerMember(){ return heldRefundPerMemberFor({heldFunds, members, config}); }
+
+function applyHold(a, idx){
+  const month = months[months.length - 1];
+  if(!month || cycleClosed || month.settled || month.isFinalSettle || month.isDeferredSettleOnly || eligibleForRound().length < 2){
+    return 'There is no open bidding round at this point.';
+  }
+  if(a.month !== undefined && a.month !== month.index) return 'It would move this entry into a different month.';
+  const amt = a.amount;
+  if(isNaN(amt) || amt <= 0) return 'Enter an amount to hold.';
+  if(!month.rounds.length) return 'Record a payout first — only leftover pot can be held.';
+  if(amt > month.available) return 'Only ' + fmt(month.available) + ' is left in this month\'s pot.';
+
+  month.available -= amt;
+  month.holds = month.holds || [];
+  month.holds.push({id: a.id, amount: amt, actionIdx: idx});
+  heldFunds.push({id: a.id, month: month.index, amount: amt, decision: null, note: ''});
+  if(month.available <= 0){
+    month.available = 0;
+    month.settled = true;
+    startNewMonth();
+  }
+  return null;
+}
+
+function holdLeftover(mi){
+  const input = document.getElementById('holdAmount_' + mi);
+  const errBox = document.getElementById('holdErr_' + mi);
+  if(!months[mi] || !input) return;
+  errBox.textContent = '';
+  if(mi !== months.length - 1){ errBox.textContent = 'Only the current month can hold leftover.'; return; }
+  const a = {type:'hold', month: months[mi].index, id: 'h_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5), amount: parseFloat(input.value)};
+  const err = R().applyHold(a, actions.length);
+  if(err){ errBox.textContent = err; return; }
+  actions.push(a);
+  renderAll();
+}
+
+/* ---------- Editing past entries ----------
+   Every bid and hold lives in `actions`. To edit or remove one, the whole fund is rebuilt from
+   scratch by replaying the log with the change applied — so payouts, leftover pots, deferrals,
+   cascades, eligibility and totals all recompute exactly as if it had been entered that way.
+   If any later entry no longer fits (someone already won, a hold exceeds the pot, an entry would
+   land in a different month…), nothing changes and the reason is shown. */
+function snapshotState(){ return JSON.parse(JSON.stringify({members, months, heldFunds, cycleClosed})); }
+function restoreState(snap){ members = snap.members; months = snap.months; heldFunds = snap.heldFunds; cycleClosed = snap.cycleClosed; }
+function stateSignature(){
+  return JSON.stringify([
+    cycleClosed,
+    members.map(m => [m.won, m.wonMonth, m.totalPaidIn, m.totalReceived, m.entitlementTotal]),
+    months.map(mo => [mo.index, mo.available, mo.deferredIn, mo.deferredOut, mo.collectionPerHead, mo.settled,
+      mo.rounds.map(r => [r.winnerId, r.bid, r.entitlement, r.paidNow, r.deferred]),
+      (mo.holds || []).map(h => h.amount)])
+  ]);
+}
+// Rebuilds everything from `list`. Returns null on success or {index, error} for the first entry that no longer fits.
+function replayActions(list){
+  const names = members.map(m => m.name);
+  const oldHeld = heldFunds;
+  members = names.map((n, i) => ({id:i, name:n, won:false, wonMonth:null, totalPaidIn:0, totalReceived:0, entitlementTotal:0}));
+  months = []; heldFunds = []; cycleClosed = false;
+  R().startNewMonth();
+  for(let i = 0; i < list.length; i++){
+    const err = list[i].type === 'hold' ? R().applyHold(list[i], i) : R().applyBid(list[i], i);
+    if(err) return {index: i, error: err};
+  }
+  heldFunds.forEach(h => { const o = oldHeld.find(x => x.id === h.id); if(o){ h.decision = o.decision; h.note = o.note; } });
+  return null;
+}
+// Builds a log for funds saved before edits existed (or imported from an older backup).
+function reconstructActions(f){
+  const list = [];
+  const fundMode = f.shortfallMode || 'defer';
+  const mem = f.members || [];
+  (f.months || []).forEach(month => {
+    (month.rounds || []).forEach(r => {
+      if(r.isFloorSettle || r.bid === null || r.bid === undefined) return;
+      let wid = r.winnerId;
+      if(wid === undefined || wid === null){ const m = mem.find(x => x.name === r.winnerName); wid = m ? m.id : -1; }
+      r.actionIdx = list.length;
+      list.push({type:'bid', month: month.index, winnerId: wid, bid: r.bid, mode: (month.extraCollections && month.extraCollections.length) ? 'topup' : (r.deferred > 0 ? 'defer' : fundMode)});
+    });
+    (month.holds || []).forEach(h => { h.actionIdx = list.length; list.push({type:'hold', month: month.index, id: h.id, amount: h.amount}); });
+  });
+  return list;
+}
+// Applies a changed log. Returns null on success, or a message explaining why it was refused (state untouched).
+function applyActionsChange(next){
+  const snap = snapshotState();
+  const before = stateSignature();
+  let res = replayActions(actions);
+  if(res || stateSignature() !== before){
+    restoreState(snap);
+    return 'This fund\'s earlier history can\'t be re-checked safely (it was saved by an older version), so editing isn\'t available for it.';
+  }
+  res = replayActions(next);
+  if(res){
+    restoreState(snap);
+    const e = next[res.index];
+    return 'Not applied — it would make entry #' + (res.index + 1) + ' (' + (e.type === 'hold' ? 'a hold in month ' : 'a bid in month ') + e.month + ') invalid: ' + res.error;
+  }
+  actions = next;
+  return null;
+}
+function startEdit(idx){ editing = idx; renderMonths(); }
+function cancelEdit(){ editing = null; renderMonths(); }
+function saveEdit(idx){
+  const a = actions[idx];
+  const errBox = document.getElementById('editErr_' + idx);
+  if(!a || !errBox) return;
+  errBox.textContent = '';
+  const amount = parseFloat(document.getElementById('editAmount_' + idx).value);
+  const na = (a.type === 'bid')
+    ? Object.assign({}, a, {winnerId: parseInt(document.getElementById('editWinner_' + idx).value), bid: amount})
+    : Object.assign({}, a, {amount});
+  const next = actions.slice(); next[idx] = na;
+  const err = applyActionsChange(next);
+  if(err){ errBox.textContent = err; return; }
+  editing = null;
+  renderAll();
+}
+function removeAction(idx){
+  const a = actions[idx];
+  if(!a) return;
+  if(!window.confirm('Remove this ' + (a.type === 'hold' ? 'hold' : 'bid') + '? Everything after it is recalculated.')) return;
+  const next = actions.slice(); next.splice(idx, 1);
+  const err = applyActionsChange(next);
+  if(err){ window.alert(err); return; }
+  editing = null;
+  renderAll();
+}
+function editControlsHtml(idx, kind, cur){
+  if(idx === undefined || idx === null) return '';
+  if(editing === idx){
+    let fields;
+    if(kind === 'bid'){
+      const opts = members.map(m => '<option value="' + m.id + '"' + (m.id === cur.winnerId ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>').join('');
+      fields = '<div class="f"><span>winner</span><select id="editWinner_' + idx + '">' + opts + '</select></div>' +
+        '<div class="f"><span>bid amount (₹) — min ' + fmt(config.floor) + '</span><input type="number" id="editAmount_' + idx + '" step="500" inputmode="numeric" value="' + cur.amount + '"></div>';
+    } else {
+      fields = '<div class="f"><span>amount held (₹)</span><input type="number" id="editAmount_' + idx + '" step="100" inputmode="numeric" value="' + cur.amount + '"></div>';
+    }
+    return '<div class="edit-form">' + fields +
+      '<div class="btn-row" style="margin-top:0;"><button type="button" onclick="saveEdit(' + idx + ')">Save change</button><button type="button" class="secondary" onclick="cancelEdit()">Cancel</button></div>' +
+      '<div class="error-msg" id="editErr_' + idx + '"></div></div>';
+  }
+  return '<div class="edit-row"><button type="button" class="mini" onclick="startEdit(' + idx + ')">✎ Edit</button>' +
+    '<button type="button" class="mini" onclick="removeAction(' + idx + ')">🗑 Remove</button></div>';
+}
+
+function setHeldDecision(id, value){
+  const h = heldFunds.find(x => x.id === id);
+  if(!h) return;
+  h.decision = value || null;
+  renderAll();
+}
+function setHeldNote(id, value){
+  const h = heldFunds.find(x => x.id === id);
+  if(!h) return;
+  h.note = value;
+  saveState();
 }
 
 /* ---------- Live bid preview ---------- */
@@ -1349,7 +1724,7 @@ function updateBidPreview(mi){
   const eligible = eligibleForRound();
   const remainingAfter = Math.max(eligible.length - 1, 0);
   const tenureMin = 1;
-  const tenureMax = Math.max(simulateTechnicalMonths(potLeftAfter, remainingAfter), 1);
+  const tenureMax = Math.max(R().technicalMonths(potLeftAfter, remainingAfter), 1);
   const rateMin = impliedAnnualRate(entitlement, config.contribution, tenureMin);
   const rateMax = impliedAnnualRate(entitlement, config.contribution, tenureMax);
   const rLo = Math.min(rateMin, rateMax), rHi = Math.max(rateMin, rateMax);
@@ -1384,7 +1759,7 @@ function updateBidPreview(mi){
 }
 
 /* ---------- Rendering: Simulator ---------- */
-function renderAll(){ renderState(); renderMonths(); if(document.getElementById('tabProj').classList.contains('active')) renderProjection(); saveState(); }
+function renderAll(){ renderRuleSelector(); renderState(); renderMonths(); if(document.getElementById('tabProj').classList.contains('active')) renderProjection(); saveState(); }
 
 function renderState(){
   const won = members.filter(m=>m.won).length;
@@ -1392,14 +1767,18 @@ function renderState(){
   let technicalLine = '';
   if(!cycleClosed && practicallyPending > 0 && months.length){
     const currentMonth = months[months.length - 1];
-    const technicalMonths = simulateTechnicalMonths(currentMonth.available, practicallyPending);
+    const technicalMonths = R().technicalMonths(currentMonth.available, practicallyPending);
     technicalLine = 'practically pending (members): <b style="color:var(--ink)">' + practicallyPending + '</b><br>' +
       'technically pending (min-bid months): <b style="color:var(--teal)">' + technicalMonths + '</b><br>';
   }
+  const heldTotal = heldFunds.reduce((sum, h) => sum + h.amount, 0);
+  const heldLine = heldFunds.length ? ('held aside: <b style="color:var(--gold)">' + fmt(heldTotal) + '</b><br>') : '';
   document.getElementById('stateBox').innerHTML =
+    'rules: <b style="color:var(--purple)">' + escapeHtml(R().name) + '</b><br>' +
     'members: <b style="color:var(--ink)">' + members.length + '</b><br>' +
     'won so far: <b style="color:var(--ink)">' + won + ' / ' + members.length + '</b><br>' +
     technicalLine +
+    heldLine +
     'status: <b style="color:var(--ink)">' + (cycleClosed ? 'cycle closed' : 'in progress') + '</b>';
 }
 
@@ -1413,6 +1792,7 @@ function renderMonths(){
       '<div class="stat">pot <b>' + fmt(month.fullPot) + '</b></div>' +
       (month.deferredIn ? '<div class="stat">less deferred-in <b>' + fmt(month.deferredIn) + '</b></div>' : '') +
       '<div class="stat">available <b>' + fmt(month.available) + '</b></div>' +
+      (month.holds && month.holds.length ? '<div class="stat">held <b>' + fmt(month.holds.reduce((sum, h) => sum + h.amount, 0)) + '</b></div>' : '') +
       '<div class="stat">collected/head <b>' + fmt(month.collectionPerHead) + '</b></div>' +
       '</div></div>';
     div.innerHTML = head;
@@ -1429,12 +1809,17 @@ function renderMonths(){
           '<div class="round-line"><span>entitlement</span><b>' + fmt(r.entitlement) + '</b></div>' +
           '<div class="round-line"><span>paid now</span><b>' + fmt(r.paidNow) + '</b></div>' +
           (r.deferred ? '<div class="round-line"><span>deferred</span><b>' + fmt(r.deferred) + '</b></div>' : '') +
+          editControlsHtml(r.actionIdx, 'bid', {winnerId: r.winnerId, amount: r.bid}) +
           '</div>';
       }
     });
 
     month.extraCollections.forEach(ec => {
       div.innerHTML += '<div class="settle-note">Top-up for <b>' + ec.reason + '</b>: ' + fmt(ec.perHead) + ' extra per member (' + fmt(ec.total) + ' total).</div>';
+    });
+
+    (month.holds || []).forEach(h => {
+      div.innerHTML += '<div class="settle-note">Held <b>' + fmt(h.amount) + '</b> from this month\'s leftover pot — set aside until the cycle closes.' + editControlsHtml(h.actionIdx, 'hold', {amount: h.amount}) + '</div>';
     });
 
     if(month.isFinalSettle){
@@ -1449,6 +1834,13 @@ function renderMonths(){
 
     if(needsRound){
       let opts = eligible.map(m => '<option value="' + m.id + '">' + m.name + '</option>').join('');
+      const holdForm = (month.rounds.length && R().caps.hold) ? (
+        '<div class="hold-box">' +
+          '<div class="f"><span>…or hold leftover until the cycle closes (₹) — ' + fmt(month.available) + ' left in the pot</span>' +
+            '<input type="number" id="holdAmount_' + mi + '" min="1" max="' + month.available + '" step="100" inputmode="numeric" value="' + Math.floor(month.available) + '"></div>' +
+          '<button type="button" class="secondary wide" onclick="holdLeftover(' + mi + ')">Hold for closing instead of bidding</button>' +
+          '<div class="error-msg" id="holdErr_' + mi + '"></div>' +
+        '</div>') : '';
       div.innerHTML += '<div class="bid-row-form">' +
         '<div class="f"><span>winner</span><select id="bidWinner_' + mi + '" oninput="updateBidPreview(' + mi + ')" onchange="updateBidPreview(' + mi + ')">' + opts + '</select></div>' +
         '<div class="f"><span>bid amount (₹) — min ' + fmt(config.floor) + '</span>' +
@@ -1460,26 +1852,68 @@ function renderMonths(){
         '</div>' +
         '<div class="bid-preview" id="bidPreview_' + mi + '"></div>' +
         '<button type="button" class="wide" onclick="submitBid(' + mi + ')">Record bid</button>' +
-        '<div class="error-msg" id="bidErr_' + mi + '"></div></div>';
+        '<div class="error-msg" id="bidErr_' + mi + '"></div>' +
+        holdForm + '</div>';
     } else if(!month.rounds.length && !month.isFinalSettle && !month.isDeferredSettleOnly){
       div.innerHTML += '<div class="empty-hint">Waiting on setup…</div>';
     }
     box.appendChild(div);
   });
 
+  renderHeldPanel(box);
+
   if(cycleClosed){
     const div = document.createElement('div');
     div.className = 'panel';
+    const share = heldRefundPerMember();
     let rows = '';
     members.forEach(m => {
-      const net = m.totalReceived - m.totalPaidIn;
+      const net = m.totalReceived + share - m.totalPaidIn;
       rows += '<tr><td style="color:' + memberColorById(m.id) + ';font-weight:700;">' + m.name + '</td><td>' + (m.wonMonth ? ('M' + m.wonMonth) : '—') + '</td>' +
-        '<td class="num">' + fmt(m.totalPaidIn) + '</td><td class="num">' + fmt(m.totalReceived) + '</td>' +
+        '<td class="num">' + fmt(m.totalPaidIn) + '</td><td class="num">' + fmt(m.totalReceived) + '</td>' + (share > 0 ? '<td class="num">' + fmt(share) + '</td>' : '') +
         '<td class="num ' + (net>=0?'pos':'neg') + '">' + (net>=0?'+':'') + fmt(net) + '</td></tr>';
     });
-    div.innerHTML = '<h2>Cycle closed — net position</h2><table class="summary"><thead><tr><th>Member</th><th>Won</th><th class="num">Paid in</th><th class="num">Received</th><th class="num">Net</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    div.innerHTML = '<h2>Cycle closed — net position</h2><table class="summary"><thead><tr><th>Member</th><th>Won</th><th class="num">Paid in</th><th class="num">Received</th>' + (share > 0 ? '<th class="num">Held share</th>' : '') + '<th class="num">Net</th></tr></thead><tbody>' + rows + '</tbody></table>';
     box.appendChild(div);
   }
+}
+
+function renderHeldPanel(box){
+  if(!heldFunds.length) return;
+  const total = heldFunds.reduce((sum, h) => sum + h.amount, 0);
+  const div = document.createElement('div');
+  div.className = 'panel';
+  div.style.marginBottom = '16px';
+  let html = '<h2>Held funds — ' + fmt(total) + '</h2>' +
+    '<div class="settle-note" style="margin-bottom:6px;">' +
+    (cycleClosed
+      ? 'The cycle is closed — decide what to do with each held amount below.'
+      : 'Set aside from leftover pots. You\'ll decide what to do with these once the cycle closes.') +
+    '</div>';
+  heldFunds.forEach(h => {
+    html += '<div class="held-item"><div class="round-line"><span>Month ' + h.month + '</span><b>' + fmt(h.amount) + '</b></div>';
+    if(cycleClosed){
+      const opt = (v, label) => '<option value="' + v + '"' + ((h.decision || '') === v ? ' selected' : '') + '>' + label + '</option>';
+      html += '<select onchange="setHeldDecision(\'' + h.id + '\', this.value)">' +
+        opt('', '— decide —') +
+        opt('refund', 'Share equally among members') +
+        opt('development', 'Keep for group use (development / expenses)') +
+        opt('other', 'Other (add a note)') +
+        '</select>' +
+        '<input type="text" placeholder="Note (optional)" value="' + escapeHtml(h.note || '') + '" onchange="setHeldNote(\'' + h.id + '\', this.value)">';
+    }
+    html += '</div>';
+  });
+  if(cycleClosed){
+    const undecided = heldFunds.filter(h => !h.decision).reduce((sum, h) => sum + h.amount, 0);
+    const kept = heldFunds.filter(h => h.decision === 'development').reduce((sum, h) => sum + h.amount, 0);
+    const share = heldRefundPerMember();
+    html += '<div class="round-line" style="margin-top:8px;"><span>shared per member</span><b>' + fmt(share) + '</b></div>' +
+      '<div class="round-line"><span>kept for group use</span><b>' + fmt(kept) + '</b></div>' +
+      (undecided > 0 ? '<div class="round-line" style="color:var(--maroon);"><span>still undecided</span><b>' + fmt(undecided) + '</b></div>' : '');
+  }
+  div.innerHTML = html;
+  box.appendChild(div);
 }
 
 /* ---------- Rendering: Projection ---------- */
@@ -1531,7 +1965,7 @@ function renderProjection(){
     Lmin = months.length;
     // Worst case: everyone left bids exactly the floor from here on — cascading can still fit
     // more than one winner per month, so this is tighter than a naive one-per-month count.
-    Lmax = completedFullMonths + simulateTechnicalMonths(currentMonth.available, remainingEligible);
+    Lmax = completedFullMonths + R().technicalMonths(currentMonth.available, remainingEligible);
     if(Lmax < Lmin) Lmax = Lmin;
   }
   const isRangeUncertain = !cycleClosed;
