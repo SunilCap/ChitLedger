@@ -114,7 +114,7 @@
 
     var script = document.createElement('script');
     script.async = true;
-    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT_ID;
+    script.src = 'file://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT_ID;
     script.crossOrigin = 'anonymous';
     script.onload = function () {
       try {
