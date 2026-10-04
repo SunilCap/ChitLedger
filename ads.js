@@ -73,8 +73,8 @@
   function initWebAdSense() {
     // TODO: fill these in from your AdSense account (Ads > By ad unit > Display ads
     // > create a responsive unit). Nothing shows until both are real values.
-    var ADSENSE_CLIENT_ID = 'ca-pub-XXXXXXXXXXXXXXXX';
-    var ADSENSE_SLOT_ID = 'XXXXXXXXXX';
+    var ADSENSE_CLIENT_ID = 'ca-pub-2129877342025466';
+    var ADSENSE_SLOT_ID = '3192124134';
 
     if (ADSENSE_CLIENT_ID.indexOf('XXXX') !== -1 || ADSENSE_SLOT_ID.indexOf('XXXX') !== -1) {
       console.warn('AdSense IDs not set yet — edit ads.js (ADSENSE_CLIENT_ID / ADSENSE_SLOT_ID) once you have both.');
