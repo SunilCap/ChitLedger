@@ -363,6 +363,7 @@
   <div class="tabs">
     <button class="tab-btn active" id="tabBtnSim" type="button">Simulator</button>
     <button class="tab-btn" id="tabBtnProj" type="button">Loan comparison</button>
+    <button class="tab-btn" id="tabBtnExport" type="button">Export</button>
   </div>
 
   <!-- SIMULATOR TAB -->
@@ -447,6 +448,43 @@
     <div id="projResults" style="margin-top:14px;"></div>
   </div>
 
+  <!-- EXPORT TAB -->
+  <div class="tab-panel" id="tabExport">
+    <div class="panel">
+      <h2>Which chit funds?</h2>
+      <div id="exportFundList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Data export &amp; backup</h2>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);line-height:1.6;margin-bottom:12px;">
+        JSON is a full backup — import it later (same device or a different one) to restore these funds exactly as they are. CSV is for opening the ledger in Excel/Sheets; it isn't meant to be re-imported.
+      </div>
+      <div class="btn-row">
+        <button type="button" onclick="exportSelectedAsJSON()">⬇ Export as JSON (backup)</button>
+        <button type="button" class="secondary" onclick="exportSelectedAsCSV()">⬇ Export as CSV (spreadsheet)</button>
+      </div>
+      <div style="margin-top:14px;">
+        <label class="field">
+          <span>Import from a JSON backup</span>
+          <input type="file" id="importFileInput" accept="application/json">
+        </label>
+        <div id="importStatus" style="font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>PDF report</h2>
+      <div class="radio-group" style="margin-bottom:12px;">
+        <label class="radio-opt"><input type="checkbox" id="pdfIncludeLedger" checked><span><b>Month-by-month ledger</b> — every round, bid, payout and deferral</span></label>
+        <label class="radio-opt"><input type="checkbox" id="pdfIncludeSummary" checked><span><b>Closing summary</b> — net position per member (only for funds whose cycle is closed)</span></label>
+        <label class="radio-opt"><input type="checkbox" id="pdfIncludeLoan"><span><b>Loan comparison</b> — uses the bank rate currently set in the Loan Comparison tab</span></label>
+      </div>
+      <button type="button" class="wide" onclick="generatePDF()">📄 Generate PDF</button>
+      <div id="pdfStatus" style="font-family:'JetBrains Mono',monospace;font-size:calc(11px * var(--font-scale));color:var(--ink-soft);margin-top:8px;"></div>
+    </div>
+  </div>
+
   <footer class="foot">All figures are illustrative — a working model of the bidding rules, not financial advice.<br>📲 On iPhone: Share → Add to Home Screen for an app-like icon. On Android: browser menu → Add to Home screen.</footer>
 </div>
 
@@ -461,7 +499,7 @@ function shortfallMode(){ return document.querySelector('input[name=shortfall]:c
 function fmt(n){ n = Math.round(n); return '₹' + n.toLocaleString('en-IN'); }
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.4';
+const APP_VERSION = 'v1.5';
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
   if(badge) badge.textContent = APP_VERSION;
@@ -684,12 +722,314 @@ function subscribeSharedFunds(){
 /* ---------- Tabs ---------- */
 document.getElementById('tabBtnSim').addEventListener('click', () => switchTab('sim'));
 document.getElementById('tabBtnProj').addEventListener('click', () => switchTab('proj'));
+document.getElementById('tabBtnExport').addEventListener('click', () => switchTab('export'));
 function switchTab(which){
   document.getElementById('tabBtnSim').classList.toggle('active', which==='sim');
   document.getElementById('tabBtnProj').classList.toggle('active', which==='proj');
+  document.getElementById('tabBtnExport').classList.toggle('active', which==='export');
   document.getElementById('tabSim').classList.toggle('active', which==='sim');
   document.getElementById('tabProj').classList.toggle('active', which==='proj');
+  document.getElementById('tabExport').classList.toggle('active', which==='export');
   if(which==='proj') renderProjection();
+  if(which==='export') renderExportTab();
+}
+
+/* ---------- Export tab: fund picker, JSON/CSV export, import, PDF ---------- */
+function renderExportTab(){
+  const box = document.getElementById('exportFundList');
+  if(!box) return;
+  const previouslyChecked = new Set(
+    Array.from(box.querySelectorAll('input[type=checkbox]:checked')).map(el => el.value)
+  );
+  const hasAnyPriorState = box.querySelectorAll('input[type=checkbox]').length > 0;
+  box.innerHTML = '';
+  Object.keys(fundsStore.funds).forEach(id => {
+    const f = fundsStore.funds[id];
+    const checked = hasAnyPriorState ? previouslyChecked.has(id) : (id === activeFundId);
+    const label = document.createElement('label');
+    label.className = 'radio-opt';
+    label.innerHTML =
+      '<input type="checkbox" value="' + id + '"' + (checked ? ' checked' : '') + '>' +
+      '<span><b>' + escapeHtml(f.name || 'Untitled') + '</b>' + (f.cycleClosed ? ' <span class="tag settled">closed</span>' : '') + '</span>';
+    box.appendChild(label);
+  });
+}
+
+function getSelectedExportFundIds(){
+  const box = document.getElementById('exportFundList');
+  if(!box) return [];
+  return Array.from(box.querySelectorAll('input[type=checkbox]:checked')).map(el => el.value);
+}
+
+function downloadFile(filename, content, mimeType){
+  const blob = new Blob([content], {type: mimeType});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function todayStamp(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+/* -- JSON backup/restore -- */
+function exportSelectedAsJSON(){
+  const ids = getSelectedExportFundIds();
+  if(!ids.length){ alert('Pick at least one chit fund to export.'); return; }
+  const funds = {};
+  ids.forEach(id => { if(fundsStore.funds[id]) funds[id] = fundsStore.funds[id]; });
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    appVersion: APP_VERSION,
+    type: 'chit-ledger-backup',
+    funds: funds
+  };
+  downloadFile('chit-ledger-backup-' + todayStamp() + '.json', JSON.stringify(payload, null, 2), 'application/json');
+}
+
+document.getElementById('importFileInput').addEventListener('change', function(e){
+  const file = e.target.files && e.target.files[0];
+  const statusEl = document.getElementById('importStatus');
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const parsed = JSON.parse(reader.result);
+      const incoming = (parsed && parsed.type === 'chit-ledger-backup' && parsed.funds) ? parsed.funds : null;
+      if(!incoming){ statusEl.textContent = 'That file doesn\'t look like a Chit Ledger backup.'; statusEl.style.color = 'var(--danger)'; return; }
+      let count = 0;
+      Object.keys(incoming).forEach(oldId => {
+        const f = incoming[oldId];
+        if(!f || !f.config) return;
+        const newId = newFundId();
+        const importedFund = Object.assign({}, f, {name: (f.name || 'Imported fund') + ' (imported)'});
+        fundsStore.funds[newId] = importedFund;
+        if(dbAvailable && dbCap){
+          dbCap.doc('funds/' + newId).set(importedFund).catch(() => {});
+        }
+        count++;
+      });
+      persistFundsStore();
+      renderFundSelector();
+      renderExportTab();
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = 'Imported ' + count + ' fund' + (count===1?'':'s') + ' — find ' + (count===1?'it':'them') + ' in "Your chit funds" (Simulator tab), named with "(imported)".';
+    }catch(err){
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = 'Could not read that file: ' + err.message;
+    }
+    document.getElementById('importFileInput').value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* -- CSV (spreadsheet) export: one row per round across selected funds -- */
+function csvEscape(val){
+  const s = String(val === undefined || val === null ? '' : val);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportSelectedAsCSV(){
+  const ids = getSelectedExportFundIds();
+  if(!ids.length){ alert('Pick at least one chit fund to export.'); return; }
+  const header = ['Fund', 'Month', 'Winner', 'Bid', 'Entitlement', 'Paid Now', 'Deferred', 'Collection Per Head', 'Notes'];
+  const rows = [header];
+
+  ids.forEach(id => {
+    const f = fundsStore.funds[id];
+    if(!f) return;
+    const fname = f.name || 'Untitled';
+    (f.months || []).forEach(month => {
+      if(month.isDeferredSettleOnly){
+        rows.push([fname, month.index, '—', '', '', '', month.deferredIn, month.collectionPerHead, 'Settled pending deferred balance only — everyone had already won']);
+        return;
+      }
+      (month.rounds || []).forEach(r => {
+        const notes = r.isFloorSettle ? 'No bid — last member, floor settle' : (r.deferred ? 'Shortfall deferred to next month' : 'Fully settled');
+        rows.push([fname, month.index, r.winnerName, r.bid === null ? '' : r.bid, r.entitlement, r.paidNow, r.deferred || '', month.collectionPerHead, notes]);
+      });
+      if(!month.rounds || !month.rounds.length){
+        rows.push([fname, month.index, '', '', '', '', '', month.collectionPerHead, 'No winner recorded yet this month']);
+      }
+    });
+  });
+
+  const csv = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+  downloadFile('chit-ledger-' + todayStamp() + '.csv', csv, 'text/csv');
+}
+
+/* -- PDF report: lazy-loads jsPDF + autotable from CDN on first use -- */
+let pdfLibsLoaded = false;
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function ensurePdfLibs(){
+  if(pdfLibsLoaded) return;
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+  pdfLibsLoaded = true;
+}
+
+function monthRowsForPdf(f){
+  const out = [];
+  (f.months || []).forEach(month => {
+    if(month.isDeferredSettleOnly){
+      out.push([month.index, '—', '', '', '', fmt(month.deferredIn), 'Settled pending deferred balance; everyone had already won']);
+      return;
+    }
+    (month.rounds || []).forEach(r => {
+      const notes = r.isFloorSettle ? 'No bid — last member, floor settle' : (r.deferred ? 'Shortfall deferred to next month' : 'Fully settled');
+      out.push([month.index, r.winnerName, r.bid === null ? '—' : fmt(r.bid), fmt(r.entitlement), fmt(r.paidNow), r.deferred ? fmt(r.deferred) : '—', notes]);
+    });
+  });
+  return out;
+}
+
+function summaryRowsForPdf(f){
+  return (f.members || []).map(m => {
+    const net = (m.totalReceived||0) - (m.totalPaidIn||0);
+    return [m.name, m.wonMonth ? ('Month ' + m.wonMonth) : '—', fmt(m.totalPaidIn||0), fmt(m.totalReceived||0), (net>=0?'+':'') + fmt(net)];
+  });
+}
+
+function loanRowsForPdf(f, bankRate){
+  const cfg = f.config || {count:5, contribution:5000, floor:10000};
+  const monthsArr = f.months || [];
+  const L = monthsArr.length; // closed-fund assumption: tenure is exact, not a range
+  const winners = (f.members || []).filter(m => m.won && m.wonMonth !== null).sort((a,b)=>a.wonMonth-b.wonMonth);
+  return winners.map(m => {
+    const tenure = Math.max(L - m.wonMonth, 0);
+    const principal = (m.entitlementTotal !== undefined) ? m.entitlementTotal : m.totalReceived;
+    if(tenure <= 0){
+      return [m.name, 'Month ' + m.wonMonth, fmt(principal), '—', 'won at the very end — no cost to compare'];
+    }
+    const rate = impliedAnnualRate(principal, cfg.contribution, tenure);
+    const verdict = rate < 0 ? ('earned ~' + Math.abs(rate).toFixed(1) + '%') :
+      (rate < bankRate ? ('cheaper by ~' + (bankRate-rate).toFixed(1) + ' pts') :
+      (rate > bankRate ? ('loan cheaper by ~' + (rate-bankRate).toFixed(1) + ' pts') : 'about the same'));
+    return [m.name, 'Month ' + m.wonMonth, fmt(principal), rate.toFixed(1) + '%', verdict];
+  });
+}
+
+async function generatePDF(){
+  const statusEl = document.getElementById('pdfStatus');
+  const ids = getSelectedExportFundIds();
+  if(!ids.length){ alert('Pick at least one chit fund to include.'); return; }
+
+  const includeLedger = document.getElementById('pdfIncludeLedger').checked;
+  const includeSummary = document.getElementById('pdfIncludeSummary').checked;
+  const includeLoan = document.getElementById('pdfIncludeLoan').checked;
+  if(!includeLedger && !includeSummary && !includeLoan){
+    alert('Pick at least one section to include in the PDF.');
+    return;
+  }
+
+  statusEl.style.color = 'var(--ink-soft)';
+  statusEl.textContent = 'Loading PDF engine…';
+  try{
+    await ensurePdfLibs();
+  }catch(err){
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = 'Could not load the PDF engine — check your internet connection and try again.';
+    return;
+  }
+  statusEl.textContent = 'Building PDF…';
+
+  const bankRate = parseFloat(document.getElementById('loanRate').value) || 0;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let first = true;
+
+  ids.forEach(id => {
+    const f = fundsStore.funds[id];
+    if(!f) return;
+    if(!first) doc.addPage();
+    first = false;
+
+    doc.setFontSize(16);
+    doc.text('🪙 ' + (f.name || 'Untitled chit fund'), 14, 18);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    const cfg = f.config || {};
+    doc.text(
+      'Members: ' + (cfg.count||'—') + '   Monthly contribution: ' + fmt(cfg.contribution||0) +
+      '   Minimum floor: ' + fmt(cfg.floor||0) + '   Status: ' + (f.cycleClosed ? 'Closed' : 'In progress'),
+      14, 25
+    );
+    doc.setTextColor(0);
+    let y = 32;
+
+    if(includeLedger){
+      const rows = monthRowsForPdf(f);
+      doc.autoTable({
+        startY: y,
+        head: [['Month', 'Winner', 'Bid', 'Entitlement', 'Paid Now', 'Deferred', 'Notes']],
+        body: rows.length ? rows : [['—','No rounds recorded yet','','','','','']],
+        styles: {fontSize: 8},
+        headStyles: {fillColor: [142, 68, 173]},
+        margin: {left: 14, right: 14}
+      });
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    if(includeSummary){
+      if(f.cycleClosed){
+        doc.setFontSize(11);
+        doc.text('Closing summary', 14, y);
+        y += 4;
+        doc.autoTable({
+          startY: y,
+          head: [['Member', 'Won', 'Paid In', 'Received', 'Net']],
+          body: summaryRowsForPdf(f),
+          styles: {fontSize: 8},
+          headStyles: {fillColor: [30, 158, 107]},
+          margin: {left: 14, right: 14}
+        });
+        y = doc.lastAutoTable.finalY + 10;
+      } else {
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text('(Closing summary skipped — this fund\'s cycle is still in progress.)', 14, y);
+        doc.setTextColor(0);
+        y += 10;
+      }
+    }
+
+    if(includeLoan){
+      doc.setFontSize(11);
+      doc.text('Loan comparison (bank rate: ' + bankRate + '%)', 14, y);
+      y += 4;
+      doc.autoTable({
+        startY: y,
+        head: [['Member', 'Won', 'Amount Received', 'Implied Rate', 'Verdict']],
+        body: loanRowsForPdf(f, bankRate),
+        styles: {fontSize: 8},
+        headStyles: {fillColor: [217, 67, 46]},
+        margin: {left: 14, right: 14}
+      });
+    }
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text('Chit Ledger ' + APP_VERSION + ' — generated ' + new Date().toLocaleString() + '. Illustrative figures, not financial advice.', 14, doc.internal.pageSize.getHeight() - 8);
+
+  doc.save('chit-ledger-' + todayStamp() + '.pdf');
+  statusEl.style.color = 'var(--green)';
+  statusEl.textContent = 'PDF downloaded.';
 }
 
 /* ---------- Fund management ---------- */
