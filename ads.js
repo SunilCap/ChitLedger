@@ -20,11 +20,6 @@
     return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   }
 
-  if (isNativeApp()) {
-    initNativeAdMob();
-  } else {
-    initWebAdSense();
-  }
 
   /* ---------------- 1. Native Android app: AdMob banner ---------------- */
   function initNativeAdMob() {
@@ -69,76 +64,138 @@
     });
   }
 
-  /* ---------------- 2. Web / installed PWA: AdSense fixed bottom bar ---------------- */
+  /* ---------------- 2. Web / installed PWA: quote strip + optional AdSense ----------------
+   * The strip is always built (so layout never jumps). It shows a rotating quote
+   * until a real AdSense ad fills it; if the ad is blocked/unfilled the quote returns. */
+  var QUOTES = [
+  "Small savings, kept steadily, grow into big things.",
+  "A promise to the group is a promise to yourself.",
+  "Patience pays more than hurry ever will.",
+  "Trust is the real currency of a chit fund.",
+  "Every instalment on time keeps the whole circle strong.",
+  "Spend less than you earn, then let time do the work.",
+  "Write it down: what's counted is what's controlled.",
+  "A fair rule applied to everyone keeps friendships safe.",
+  "The best time to start saving was yesterday; the next best is today.",
+  "Many small hands lift the heaviest pot.",
+  "Know your floor before you bid.",
+  "A lower bid today is a bigger share tomorrow.",
+  "Good records make good neighbours.",
+  "Don't borrow for tomorrow what you can save today.",
+  "Your turn will come; the circle makes sure of it.",
+  "Debt is a heavy bag; savings is a light one.",
+  "Count twice, bid once.",
+  "Steady months beat lucky months.",
+  "A group that talks openly rarely argues.",
+  "Discipline is just kindness to your future self.",
+  "Save first, spend what remains.",
+  "Interest rewards the patient and taxes the hurried.",
+  "Every member's win is the group's win.",
+  "A budget is a plan for your money to follow.",
+  "Pay early, sleep well.",
+  "Wealth is built in ordinary months.",
+  "Ask the cost, then ask the rate.",
+  "The pot grows when everyone shows up.",
+  "Little by little, a pot becomes a plan.",
+  "Honest numbers are the kindest numbers.",
+  "Make a habit of paying yourself first.",
+  "A chit is trust with a calendar.",
+  "Plan the month before the month plans you.",
+  "Quiet consistency outlasts loud ambition.",
+  "Share the leftover fairly and the circle stays whole.",
+  "Keep a cushion for the month you didn't expect.",
+  "Compare before you commit.",
+  "Clear rules today, no arguments tomorrow.",
+  "Money saved together goes further than money saved alone.",
+  "One more month of patience can change the whole outcome."
+];
+
+  function shuffle(arr) {
+    for (var n = arr.length - 1; n > 0; n--) { var j = Math.floor(Math.random() * (n + 1)); var t = arr[n]; arr[n] = arr[j]; arr[j] = t; }
+    return arr;
+  }
+  function attachBar(bar) {
+    if (!document.body) document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(bar); });
+    else document.body.appendChild(bar);
+  }
+  function reserve(bar) {
+    function update() {
+      var h = bar.hidden ? 0 : bar.offsetHeight;
+      document.documentElement.style.setProperty('--ad-banner-height', (h ? h + 12 : 0) + 'px');
+    }
+    update();
+    if (window.ResizeObserver) new ResizeObserver(update).observe(bar);
+    else { setTimeout(update, 500); setTimeout(update, 2000); }
+    return update;
+  }
+  function reduced() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
   function initWebAdSense() {
-    // TODO: fill these in from your AdSense account (Ads > By ad unit > Display ads
-    // > create a responsive unit). Nothing shows until both are real values.
+    // TODO: fill these in from your AdSense account. Until both are real values, only quotes show.
     var ADSENSE_CLIENT_ID = 'ca-pub-xxxxxxxxxxxxxxxx';
     var ADSENSE_SLOT_ID = 'xxxxxxxxxx';
-
-    if (ADSENSE_CLIENT_ID.indexOf('XXXX') !== -1 || ADSENSE_SLOT_ID.indexOf('XXXX') !== -1) {
-      console.warn('AdSense IDs not set yet — edit ads.js (ADSENSE_CLIENT_ID / ADSENSE_SLOT_ID) once you have both.');
-      return;
-    }
+    var configured = !(/x{4}/i.test(ADSENSE_CLIENT_ID) || /x{4}/i.test(ADSENSE_SLOT_ID));
 
     var bar = document.createElement('div');
     bar.id = 'adsense-bottom-bar';
-    bar.style.position = 'fixed';
-    bar.style.left = '0';
-    bar.style.right = '0';
-    bar.style.bottom = '0';
-    bar.style.zIndex = '9999';
-    bar.style.background = 'var(--paper-card, #fff)';
-    bar.style.borderTop = '1px solid rgba(0,0,0,0.1)';
-    bar.style.display = 'flex';
-    bar.style.justifyContent = 'center';
-    bar.style.paddingBottom = 'env(safe-area-inset-bottom, 0px)';
-    bar.style.minHeight = '50px';
+    bar.className = 'ad-strip'; // positioned above the bottom nav by index.html's CSS
+    bar.setAttribute('role', 'complementary');
+    var q = document.createElement('div');
+    q.className = 'quote';
+    q.setAttribute('title', 'Tap for another');
+    q.innerHTML = '<span class="ad-label">Quote</span><span class="quote-text"></span>';
+    bar.appendChild(q);
+    var text = q.querySelector('.quote-text');
+
+    var order = shuffle(QUOTES.slice()), idx = 0;
+    text.textContent = order[idx++];
+    function nextQuote() {
+      if (idx >= order.length) { order = shuffle(QUOTES.slice()); idx = 0; }
+      var t = order[idx++];
+      if (reduced()) { text.textContent = t; return; }
+      q.style.opacity = '0';
+      setTimeout(function () { text.textContent = t; q.style.opacity = '1'; }, 250);
+    }
+    q.addEventListener('click', nextQuote);
+    setInterval(function () { if (!document.hidden && !bar.classList.contains('has-ad')) nextQuote(); }, 15000);
+
+    attachBar(bar);
+    reserve(bar);
+    if (!configured) { console.info('AdSense IDs not set yet — showing quotes only.'); return; }
 
     var ins = document.createElement('ins');
     ins.className = 'adsbygoogle';
-    ins.style.display = 'block';
-    ins.style.width = '100%';
-    ins.style.maxWidth = '728px';
+    ins.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;display:block;opacity:0;pointer-events:none;';
     ins.setAttribute('data-ad-client', ADSENSE_CLIENT_ID);
     ins.setAttribute('data-ad-slot', ADSENSE_SLOT_ID);
     ins.setAttribute('data-ad-format', 'auto');
     ins.setAttribute('data-full-width-responsive', 'true');
     bar.appendChild(ins);
 
-    if (!document.body) {
-      document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(bar); });
-    } else {
-      document.body.appendChild(bar);
+    if (window.MutationObserver) {
+      new MutationObserver(function () {
+        var filled = ins.getAttribute('data-ad-status') === 'filled';
+        bar.classList.toggle('has-ad', filled);
+        ins.style.opacity = filled ? '1' : '0';
+        ins.style.pointerEvents = filled ? 'auto' : 'none';
+      }).observe(ins, { attributes: true, attributeFilter: ['data-ad-status'] });
     }
 
     var script = document.createElement('script');
     script.async = true;
-    script.src = 'file://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT_ID;
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT_ID;
     script.crossOrigin = 'anonymous';
     script.onload = function () {
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (e) {
-        console.warn('AdSense push failed:', e);
-      }
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) { console.warn('AdSense push failed:', e); }
     };
-    script.onerror = function () {
-      console.warn('AdSense script failed to load (ad blocker, or site not yet approved).');
-    };
+    script.onerror = function () { console.warn('AdSense script failed to load (ad blocker, or site not yet approved).'); };
     document.head.appendChild(script);
+  }
 
-    // Reserve space in the page so the fixed bar never covers the footer or buttons.
-    // Re-measures as the ad actually renders in, since its real height isn't known upfront.
-    function updateReservedSpace() {
-      document.documentElement.style.setProperty('--ad-banner-height', (bar.offsetHeight || 0) + 'px');
-    }
-    updateReservedSpace();
-    if (window.ResizeObserver) {
-      new ResizeObserver(updateReservedSpace).observe(bar);
-    } else {
-      setTimeout(updateReservedSpace, 1000);
-      setTimeout(updateReservedSpace, 3000);
-    }
+  // Dispatch last, so every var above is initialised first.
+  if (isNativeApp()) {
+    initNativeAdMob();
+  } else {
+    initWebAdSense();
   }
 })();

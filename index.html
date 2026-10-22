@@ -53,7 +53,7 @@
     --ad-banner-height:0px; /* set at runtime by ads.js once an ad loads (native or web) */
     box-sizing:border-box;
     padding-top:env(safe-area-inset-top,0px);
-    padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--ad-banner-height));
+    padding-bottom:0;
   }
   /* ===== Design tokens (dark): follows the phone unless the user picked Light/Dark ===== */
   @media (prefers-color-scheme: dark){
@@ -160,11 +160,11 @@
 
   /* ===== Shell: bottom nav on phones, sidebar on wide screens ===== */
   .shell{max-width:1180px;margin:0 auto;}
-  .wrap{max-width:680px;margin:0 auto;padding:18px 16px calc(72px + 18px * var(--font-scale));}
+  .wrap{max-width:680px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(var(--nav-h,72px) + var(--ad-banner-height,0px) + 20px) max(16px,env(safe-area-inset-left,0px));}
   nav.tabs{
-    position:fixed;left:0;right:0;bottom:var(--ad-banner-height,0px);z-index:40;
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
     display:flex;gap:4px;
-    padding:6px 8px calc(6px + max(0px, calc(env(safe-area-inset-bottom,0px) - var(--ad-banner-height,0px))));
+    padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px));
     background:var(--paper-card);border-top:1px solid var(--rule);
   }
   button.tab-btn{
@@ -184,7 +184,7 @@
     button.tab-btn .tab-ic{width:24px;height:24px;border-radius:0;}
     button.tab-btn.active{background:var(--paper-2);}
     button.tab-btn.active .tab-ic{background:transparent;}
-    .wrap{margin:0;padding:0 0 48px;max-width:760px;}
+    .wrap{margin:0;padding:0 0 calc(48px + var(--ad-banner-height,0px));max-width:760px;}
   }
   @media (max-width:560px){
     .version-badge,.brand .wordmark{display:none;}
@@ -381,7 +381,7 @@
 
   /* ===== v1.12: fintech components ===== */
   .ic{flex:none;vertical-align:-3px;}
-  button .ic{margin-right:6px;} button.icon-btn .ic,button.top-btn .ic,button.tab-btn .ic{margin:0;}
+  button .ic{margin:0;}
   .mdot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;flex:none;}
   .hero{background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow-card);margin-bottom:14px;}
   .hero h2{font-size:calc(18px * var(--font-scale));font-weight:800;letter-spacing:-0.02em;margin:3px 0 10px;}
@@ -399,11 +399,11 @@
   .sheet h2{font-size:calc(18px * var(--font-scale));font-weight:800;margin-bottom:8px;}
   .sheet p{color:var(--ink-soft);margin-bottom:16px;} .sheet .btn-row{justify-content:flex-end;}
   @media (min-width:600px){.sheet-back{align-items:center;}.sheet{border-radius:20px;}}
-  #toastRoot{position:fixed;left:12px;right:12px;z-index:95;bottom:calc(86px + env(safe-area-inset-bottom,0px) + var(--ad-banner-height,0px));display:flex;justify-content:center;pointer-events:none;}
+  #toastRoot{position:fixed;left:12px;right:12px;z-index:95;bottom:calc(var(--nav-h,72px) + var(--ad-banner-height,0px) + 12px);display:flex;justify-content:center;pointer-events:none;}
   .toast{max-width:420px;padding:12px 16px;border-radius:12px;background:#173c30;color:#fff;font-weight:650;font-size:calc(13.5px * var(--font-scale));box-shadow:0 10px 28px rgba(0,0,0,.25);animation:rise .2s ease;}
   .toast.err{background:#8e241f;}
   @keyframes rise{from{opacity:.6;transform:translateY(14px)}to{opacity:1;transform:none}}
-  @media (min-width:901px){#toastRoot{bottom:24px;justify-content:flex-end;right:24px;}}
+  @media (min-width:901px){#toastRoot{bottom:calc(24px + var(--ad-banner-height,0px));justify-content:flex-end;right:24px;}}
   @media (max-width:560px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr));}}
   @media (pointer:coarse){button,button.top-btn,button.seg-btn,button.mini,button.icon-btn,.fund-chip{min-height:44px;min-width:44px;}button.tab-btn{min-height:54px;}}
 
@@ -420,10 +420,10 @@
   .skel{height:118px;border:1px solid var(--rule);background:linear-gradient(90deg,var(--paper-2) 25%,var(--paper-card) 50%,var(--paper-2) 75%);background-size:200% 100%;animation:shimmer 1.4s linear infinite;}
   .update-bar{position:fixed;z-index:96;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);max-width:420px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 16px;border-radius:12px;background:var(--info-bg);color:var(--info-fg);border:1px solid var(--info-border);font-weight:700;}
   .update-bar[hidden]{display:none;}
-  .home-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0 16px;}
+  .home-heading{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0 16px;}
   .home-heading h1{font-size:calc(24px * var(--font-scale));font-weight:800;letter-spacing:-0.03em;margin-top:3px;}
   .home-heading p{color:var(--ink-soft);font-size:calc(13px * var(--font-scale));margin-top:4px;}
-  .create-fund-btn{white-space:nowrap;}
+  .create-fund-btn{flex:1 1 auto;}
   .device-status{display:inline-flex;align-items:center;gap:7px;background:var(--chip-green-bg);color:var(--chip-green-fg);padding:5px 11px;border-radius:999px;font-size:calc(12px * var(--font-scale));font-weight:700;}
   .home-foot{margin-top:18px;color:var(--ink-soft);font-size:calc(12px * var(--font-scale));}
   .fund-card{position:relative;overflow:hidden;background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow-card);margin-bottom:12px;--acc:var(--primary);}
@@ -447,6 +447,62 @@
   .install-card{background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow-card);}
   .install-card h2{font-size:calc(17px * var(--font-scale));margin-bottom:8px;}.install-card ul{list-style:none;padding:0;margin:0 0 4px;color:var(--ink-soft);}.install-card li{padding:3px 0;}
   .err-ic{width:48px;height:48px;border-radius:50%;background:var(--chip-red-bg);color:var(--chip-red-fg);display:grid;place-items:center;font-size:24px;font-weight:800;margin-bottom:12px;}
+
+  /* ===== v1.14: ad strip above nav + app-like mobile behaviour ===== */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;}
+  button,nav.tabs{-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .ad-strip{position:fixed;z-index:39;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(var(--nav-h,72px) + 6px);min-height:50px;max-height:60px;border-radius:12px;border:1px solid var(--rule);background:var(--paper-card);display:flex;align-items:center;justify-content:center;overflow:hidden;gap:10px;font-size:calc(12px * var(--font-scale));color:var(--ink-soft);}
+  .ad-strip[hidden]{display:none;}
+  .ad-strip .ad-label{background:var(--paper-2);border-radius:6px;padding:2px 7px;font-weight:800;}
+  .ad-strip.preview{border-style:dashed;}
+  @media (min-width:901px){.ad-strip{left:260px;right:24px;bottom:8px;max-width:728px;}}
+  @media (max-width:360px){.hero{padding:13px;}.wrap{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));}.tiles,.month-stats{gap:7px;}.stat{padding:8px 10px;}}
+  @media (max-height:640px) and (max-width:900px){button.tab-btn{min-height:46px;}button.tab-btn .tab-ic{height:24px;}.sp-bar{margin-top:12px;}.home-heading{margin:8px 0 10px;}}
+  @media (max-height:480px) and (orientation:landscape) and (max-width:900px){button.tab-btn{flex-direction:row;gap:8px;min-height:40px;}.sheet{max-height:94dvh;overflow:auto;}}
+  .sheet{max-height:90dvh;overflow:auto;}
+
+  /* ===== v1.15: button text safety + tablet/desktop layouts ===== */
+  button{display:inline-flex;align-items:center;justify-content:center;gap:7px;text-align:center;line-height:1.25;max-width:100%;overflow-wrap:anywhere;white-space:normal;}
+  .btn-row>button{flex:1 1 auto;min-width:min(100%,128px);}
+  .sheet .btn-row>button{flex:1 1 120px;}
+  button.tab-btn,button.seg-btn,button.top-btn{min-width:0;}
+  button.tab-btn{overflow-wrap:anywhere;hyphens:auto;}
+  button.top-btn .btn-label{white-space:nowrap;}
+  button.mini{white-space:normal;line-height:1.2;}
+  .fund-name{min-width:0;overflow-wrap:anywhere;}.fund-top .tag{flex:none;}
+  .tag{white-space:nowrap;}
+  .stat,.stat b{overflow-wrap:anywhere;}
+  @media (min-width:601px) and (max-width:900px){
+    .wrap{max-width:720px;}
+    #fundsList{display:grid;grid-template-columns:1fr 1fr;gap:12px;}#fundsList .fund-card{margin:0;}
+    .ad-strip{max-width:728px;margin:0 auto;}
+    button.tab-btn{flex-direction:row;gap:10px;font-size:calc(13px * var(--font-scale));}
+  }
+  @media (min-width:901px){
+    .shell{max-width:1360px;margin:0 auto;}
+    .wrap{max-width:1040px;width:100%;}
+    #fundsList{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;}#fundsList .fund-card{margin:0;}
+    .rulecards{grid-template-columns:1fr 1fr;}
+    .month-stats{grid-template-columns:repeat(4,minmax(0,1fr));}
+    .home-heading{margin-top:4px;}
+    .ad-strip{left:max(260px,calc(50% - 440px));right:auto;width:min(728px,calc(100% - 300px));}
+  }
+  @media (min-width:1280px){.wrap{max-width:1120px;}.shell{grid-template-columns:240px minmax(0,1fr);}}
+
+  /* ===== v1.16: rule cards with expandable rules, quote strip ===== */
+  .rules-hint:empty{display:none;}
+  .rule-card{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 6px;background:var(--paper-card);border:1px solid var(--rule);border-radius:12px;padding:4px 6px 4px 4px;}
+  .rule-card.selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary);background:var(--paper-2);}
+  button.rulepick-btn{justify-content:flex-start;text-align:left;gap:10px;background:transparent;color:var(--ink);box-shadow:none;border:0;font-weight:700;min-width:0;padding:8px 10px;}
+  .radio-dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--input-border);box-sizing:border-box;}
+  .rule-card.selected .radio-dot{border:5px solid var(--primary);}
+  button.rule-link{background:transparent;color:var(--primary);box-shadow:none;border:0;text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:calc(13px * var(--font-scale));padding:6px 10px;min-height:44px;}
+  .rule-desc{grid-column:1 / -1;padding:2px 12px 10px 38px;color:var(--ink-soft);font-size:calc(13px * var(--font-scale));line-height:1.5;}
+  .rule-desc[hidden]{display:none;}
+  .ad-strip .quote{flex:1;min-width:0;align-self:stretch;display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;transition:opacity .25s ease;}
+  .ad-strip .quote-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;}
+  .ad-strip .ad-label{flex:none;}
+  .ad-strip.has-ad .quote{display:none;}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important;}
   }
@@ -611,6 +667,14 @@
     </div>
 
     <div class="panel">
+      <h2>Share with a friend</h2>
+      <div style="font-family:var(--font-ui);font-size:calc(11px * var(--font-scale));color:var(--ink-soft);line-height:1.6;margin-bottom:12px;">
+        Creates a link with a full, editable copy of the selected fund(s). When your friend opens it, they are asked to add it to their Chit Ledger. It is a one-time copy: later changes on either phone are not synced.
+      </div>
+      <div class="btn-row"><button type="button" onclick="shareFunds(getSelectedExportFundIds())">Share link</button></div>
+    </div>
+
+    <div class="panel">
       <h2>Data export &amp; backup</h2>
       <div style="font-family:var(--font-ui);font-size:calc(11px * var(--font-scale));color:var(--ink-soft);line-height:1.6;margin-bottom:12px;">
         JSON is a full backup — import it later (same device or a different one) to restore these funds exactly as they are. CSV is for opening the ledger in Excel/Sheets; it isn't meant to be re-imported.
@@ -664,7 +728,7 @@ let heldFunds = []; // leftover pot amounts set aside until the cycle closes: {i
 
 function shortfallMode(){ return document.querySelector('input[name=shortfall]:checked').value; }
 function fmt(n){ n = Math.round(n); return '₹' + n.toLocaleString('en-IN'); }
-const ICONS = {save:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',book:'<path d="M5 4.5h10.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5z"/><path d="M8 17h10.5"/>',down:'<path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/>',file:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 13h5M9.5 17h5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>'};
+const ICONS = {share:'<path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/>',save:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',book:'<path d="M5 4.5h10.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5z"/><path d="M8 17h10.5"/>',down:'<path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/>',file:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 13h5M9.5 17h5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>'};
 function ic(n, z){ z = z || 18; return '<svg class="ic" width="' + z + '" height="' + z + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; }
 function mdot(id){ return '<span class="mdot" style="background:' + memberColorById(id) + ';"></span>'; }
 /* Bottom-sheet dialogs and toasts (replace confirm / prompt / alert) */
@@ -679,7 +743,8 @@ function toast(msg, kind){ const r = document.getElementById('toastRoot'); if(!r
 
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.13';
+const APP_VERSION = 'v1.20';
+const APP_PUBLIC_URL = 'https://sunilcap.github.io/ChitLedger/'; // used for share links when the page isn't served from a normal web address
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
   if(badge) badge.textContent = APP_VERSION;
@@ -1416,6 +1481,8 @@ registerChitRules(agentRuleDef('agent_c', 'Agent Rule C — Commission + monthly
   {commission: true, agentMonth: false, pool: false, share: 'monthly'}, AGENT_COMMISSION_OPTIONS));
 
 /* ---------- Chit rules: picker (Group setup) and Rules page ---------- */
+let __ruleOpen = {};
+function toggleRuleDesc(id){ __ruleOpen[id] = !__ruleOpen[id]; renderRuleSelector(); }
 function renderRuleSelector(){
   const sel = document.getElementById('cfgRules');
   if(!sel) return;
@@ -1424,8 +1491,8 @@ function renderRuleSelector(){
   const locked = actions.length > 0;
   sel.disabled = locked || ids.length < 2;
   const rp = document.getElementById('rulePicker');
-  if(rp) rp.innerHTML = ids.map(id => { const c = CHIT_RULES[id], on = (c === R()); return '<button type="button" class="rulepick accent-' + id + (on ? ' selected' : '') + '"' + (locked ? ' disabled' : '') + ' aria-pressed="' + on + '" onclick="onRuleChange(\'' + id + '\')"><strong>' + escapeHtml(c.name) + '</strong><span>' + escapeHtml(c.short) + '</span></button>'; }).join('');
-  document.getElementById('rulesBlurb').textContent = R().short;
+  if(rp) rp.innerHTML = ids.map(id => { const c = CHIT_RULES[id], on = (c === R()), open = !!__ruleOpen[id]; return '<div class="rule-card accent-' + id + (on ? ' selected' : '') + '"><button type="button" class="rulepick-btn"' + (locked ? ' disabled' : '') + ' aria-pressed="' + on + '" onclick="onRuleChange(\'' + id + '\')"><span class="radio-dot"></span><strong>' + escapeHtml(c.name) + '</strong></button><button type="button" class="rule-link" aria-expanded="' + open + '" aria-controls="ruleDesc_' + id + '" onclick="toggleRuleDesc(\'' + id + '\')">' + (open ? 'Hide rules' : 'Rules') + '</button><div class="rule-desc" id="ruleDesc_' + id + '"' + (open ? '' : ' hidden') + '>' + escapeHtml(c.short) + '</div></div>'; }).join('');
+  document.getElementById('rulesBlurb').textContent = '';
   document.getElementById('rulesLockNote').textContent = locked
     ? 'Locked — bidding has started. Reset the simulation or start a new chit fund to use different rules.'
     : (ids.length < 2 ? 'More chit rule sets will appear here — you\'ll pick one before the first bid.' : 'Pick before the first bid. It locks once bidding starts.');
@@ -1583,6 +1650,87 @@ document.getElementById('importFileInput').addEventListener('change', function(e
   };
   reader.readAsText(file);
 });
+
+/* -- Share by link: whole fund(s) packed into the URL hash (never sent to a server) -- */
+function toB64u(bytes){ let t = ''; for(let i = 0; i < bytes.length; i += 0x8000) t += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function fromB64u(t){ t = t.replace(/-/g, '+').replace(/_/g, '/'); while(t.length % 4) t += '='; const b = atob(t), u = new Uint8Array(b.length); for(let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+async function streamBytes(bytes, Ctor){ const out = new Blob([bytes]).stream().pipeThrough(new Ctor('deflate-raw')); return new Uint8Array(await new Response(out).arrayBuffer()); }
+async function encodeShare(obj){
+  const raw = new TextEncoder().encode(JSON.stringify(obj));
+  if(typeof CompressionStream !== 'undefined'){ try{ return 'z.' + toB64u(await streamBytes(raw, CompressionStream)); }catch(e){} }
+  return 'p.' + toB64u(raw);
+}
+async function decodeShare(t){
+  const kind = t.slice(0, 2); let raw = fromB64u(t.slice(2));
+  if(kind === 'z.'){ if(typeof DecompressionStream === 'undefined') throw new Error('unsupported'); raw = await streamBytes(raw, DecompressionStream); }
+  else if(kind !== 'p.') throw new Error('bad link');
+  return JSON.parse(new TextDecoder().decode(raw));
+}
+function validateShared(p){
+  const list = (p && p.type === 'chit-ledger-share' && p.funds && typeof p.funds === 'object') ? Object.keys(p.funds).map(k => p.funds[k]) : [];
+  const ok = list.filter(f => f && f.config && Number.isFinite(+f.config.count) && Number.isFinite(+f.config.contribution) && Array.isArray(f.members) && f.members.length <= 100).slice(0, 5);
+  if(!ok.length) throw new Error('not a share');
+  return ok;
+}
+function shareBase(){
+  try{ if(/^https?:$/.test(location.protocol) && location.origin && location.origin !== 'null') return location.origin + location.pathname; }catch(e){}
+  return APP_PUBLIC_URL;
+}
+async function shareFunds(ids){
+  ids = (ids || []).filter(id => fundsStore.funds[id]);
+  if(!ids.length){ toast('Pick at least one chit fund to share.'); return; }
+  const funds = {}; ids.forEach(id => { funds[id] = fundsStore.funds[id]; });
+  let link;
+  try{ link = shareBase() + '#import=' + await encodeShare({type: 'chit-ledger-share', v: 1, funds: funds}); }
+  catch(e){ toast('Could not create a share link.', 'error'); return; }
+  if(link.length > 12000){ toast('This is too large for a link. Use Export as JSON instead.', 'error'); return; }
+  const title = ids.length === 1 ? (fundsStore.funds[ids[0]].name || 'Chit fund') : ids.length + ' chit funds';
+  try{
+    if(navigator.share){ await navigator.share({title: 'Chit Ledger: ' + title, text: 'Open this chit fund in Chit Ledger', url: link}); return; }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  try{ await navigator.clipboard.writeText(link); toast('Link copied. Paste it to your friend.'); }
+  catch(e){ showLinkSheet(link, title); }
+}
+let __shareLink = '', __shareTitle = '';
+function showLinkSheet(link, title){
+  __shareLink = link; __shareTitle = title;
+  openSheet('<h2>Share this chit fund</h2><p>Send this link to your friend. When they open it, they can add an editable copy.</p><label class="field"><input type="text" id="sheetLink" readonly value="' + escapeHtml(link) + '" onfocus="this.select()"></label><div class="btn-row"><button type="button" class="secondary" onclick="closeSheet()">Close</button>' + (navigator.share ? '<button type="button" class="secondary" onclick="shareNow()">Share</button>' : '') + '<button type="button" onclick="copyShareLink()">Copy link</button></div>');
+}
+function shareNow(){ try{ navigator.share({title: 'Chit Ledger: ' + __shareTitle, text: 'Open this chit fund in Chit Ledger', url: __shareLink}).catch(() => {}); }catch(e){} }
+function copyShareLink(){
+  const done = () => toast('Link copied. Paste it to your friend.');
+  const manual = () => {
+    const el = document.getElementById('sheetLink');
+    try{ el.focus(); el.select(); if(el.setSelectionRange) el.setSelectionRange(0, 99999); if(document.execCommand && document.execCommand('copy')){ done(); return; } }catch(e){}
+    toast('Press and hold the link, then choose Copy.');
+  };
+  try{ navigator.clipboard.writeText(__shareLink).then(done, manual); }catch(e){ manual(); }
+}
+async function checkShareHash(){
+  const m = /^#import=([A-Za-z0-9_.\-]+)$/.exec(location.hash || '');
+  if(!m) return;
+  try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+  try{
+    const list = validateShared(await decodeShare(m[1]));
+    const desc = list.map(f => (f.name || 'Untitled') + ' (' + (f.members || []).length + ' members)').join(', ');
+    askConfirm('Add shared chit fund?', desc + '. A copy will be added to your funds; changes you make stay on this device.', 'Add to my funds', () => doImportShared(list));
+  }catch(e){ toast('Could not open that shared link.', 'error'); }
+}
+function doImportShared(list){
+  let lastId = null;
+  list.forEach(f => {
+    const copy = JSON.parse(JSON.stringify(f)); const id = newFundId();
+    if(!CHIT_RULES[copy.ruleId]) copy.ruleId = DEFAULT_RULE_ID;
+    copy.name = String(copy.name || 'Shared fund').slice(0, 80);
+    fundsStore.funds[id] = copy; lastId = id;
+  });
+  persistFundsStore();
+  activateFund(lastId);
+  renderFundSelector(); renderExportTab();
+  switchTab('sim');
+  toast('Added to your funds.');
+}
+window.addEventListener('hashchange', checkShareHash);
 
 /* -- CSV (spreadsheet) export: one row per round across selected funds -- */
 function csvEscape(val){
@@ -1862,7 +2010,7 @@ function renderFundSelector(){
       '<span class="fund-top"><span class="fund-name">' + escapeHtml(f.name || 'Untitled') + '</span><span class="tag ' + (f.cycleClosed ? 'pool' : 'settled') + '">' + (f.cycleClosed ? 'Closed' : 'In progress') + '</span></span>' +
       '<span class="fund-meta">' + escapeHtml(rn) + '</span><span class="fund-meta"><b>' + n + '</b> members · <b>' + fmt(n * (c.contribution || 0)) + '</b> monthly pot</span>' +
       '<span class="fund-prog"><span class="progress"><span style="width:' + (n ? won / n * 100 : 0) + '%"></span></span><span class="fund-meta">' + won + ' of ' + n + ' won</span></span></button>' +
-      '<div class="fund-tools"><button type="button" class="icon-btn" onclick="startRenameFund(\'' + id + '\')" aria-label="Rename">' + ic('edit') + '</button><button type="button" class="icon-btn" onclick="confirmDeleteFund(\'' + id + '\')" aria-label="Delete">' + ic('trash') + '</button></div></article>';
+      '<div class="fund-tools"><button type="button" class="icon-btn" onclick="shareFunds([\'' + id + '\'])" aria-label="Share">' + ic('share') + '</button><button type="button" class="icon-btn" onclick="startRenameFund(\'' + id + '\')" aria-label="Rename">' + ic('edit') + '</button><button type="button" class="icon-btn" onclick="confirmDeleteFund(\'' + id + '\')" aria-label="Delete">' + ic('trash') + '</button></div></article>';
   }).join('');
 }
 function openFund(id){ if(id !== activeFundId) activateFund(id); switchTab('sim'); }
@@ -2781,8 +2929,12 @@ document.getElementById('btnNewFund').addEventListener('click', () => askText('N
     updateSyncStatusUI();
   }
   switchTab('funds'); // always open on the lobby
+  function syncNavH(){ const n = document.querySelector('nav.tabs'); document.documentElement.style.setProperty('--nav-h', ((n && window.innerWidth <= 900) ? n.offsetHeight : 0) + 'px'); }
+  syncNavH(); window.addEventListener('resize', syncNavH); window.addEventListener('orientationchange', syncNavH);
+  if(window.ResizeObserver && document.querySelector('nav.tabs')) new ResizeObserver(syncNavH).observe(document.querySelector('nav.tabs'));
   const sv = document.getElementById('splashVer'); if(sv) sv.textContent = APP_VERSION;
   setTimeout(hideSplash, 600);
+  setTimeout(checkShareHash, 750);
 })();
 </script>
 <script>
@@ -2797,5 +2949,21 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 </script>
 <script src="ads.js"></script>
+<script>
+/* Fallback: if ads.js is missing (file opened on its own), still show the quote strip. */
+(function(){
+  if(document.getElementById('adsense-bottom-bar')) return;
+  var Q=['Small savings, kept steadily, grow into big things.','Patience pays more than hurry ever will.','Trust is the real currency of a chit fund.','Every instalment on time keeps the whole circle strong.','Many small hands lift the heaviest pot.','Know your floor before you bid.','Count twice, bid once.','Steady months beat lucky months.','Pay early, sleep well.','Clear rules today, no arguments tomorrow.','Save first, spend what remains.','Keep a cushion for the month you didn\'t expect.'];
+  var bar=document.createElement('div'); bar.id='adsense-bottom-bar'; bar.className='ad-strip'; bar.setAttribute('role','complementary');
+  var q=document.createElement('div'); q.className='quote'; q.innerHTML='<span class="ad-label">Quote</span><span class="quote-text"></span>';
+  bar.appendChild(q); var t=q.querySelector('.quote-text'), i=Math.floor(Math.random()*Q.length);
+  t.textContent=Q[i];
+  function next(){ i=(i+1)%Q.length; t.textContent=Q[i]; }
+  q.addEventListener('click',next); setInterval(function(){ if(!document.hidden) next(); },15000);
+  document.body.appendChild(bar);
+  function r(){ document.documentElement.style.setProperty('--ad-banner-height',(bar.offsetHeight?bar.offsetHeight+12:0)+'px'); }
+  r(); if(window.ResizeObserver) new ResizeObserver(r).observe(bar);
+})();
+</script>
 </body>
 </html>
