@@ -503,6 +503,20 @@
   .ad-strip .quote-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;}
   .ad-strip .ad-label{flex:none;}
   .ad-strip.has-ad .quote{display:none;}
+
+  /* ===== v1.21: nothing hides behind bars; collapsible previous months; paste box ===== */
+  html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + var(--top-h,64px) + 12px);scroll-padding-bottom:calc(var(--nav-h,72px) + var(--ad-banner-height,0px) + 16px);}
+  body::after{content:'';position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h,72px) + var(--ad-banner-height,0px));background:var(--paper);z-index:38;pointer-events:none;}
+  @media (min-width:901px){body::after{height:var(--ad-banner-height,0px);}}
+  details.prev-month{padding:0;}
+  details.prev-month>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;cursor:pointer;min-height:48px;}
+  details.prev-month>summary::-webkit-details-marker{display:none;}
+  details.prev-month>summary::after{content:'';width:8px;height:8px;border-right:2px solid var(--ink-soft);border-bottom:2px solid var(--ink-soft);transform:rotate(45deg);margin:-4px 2px 0 6px;flex:none;transition:transform .15s;}
+  details.prev-month[open]>summary::after{transform:rotate(-135deg);margin-top:4px;}
+  details.prev-month .prev-sum{flex:1;text-align:right;color:var(--ink-soft);font-size:calc(13px * var(--font-scale));font-weight:650;overflow-wrap:anywhere;}
+  details.prev-month .prev-body{padding:0 16px 14px;}
+  .paste-box{margin-top:16px;padding-top:14px;border-top:1px solid var(--rule);}
+  .paste-title{font-weight:750;margin-bottom:8px;}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important;}
   }
@@ -594,7 +608,7 @@
           <input type="number" id="cfgFloor" min="0" step="500" value="10000" inputmode="numeric">
         </label>
         <div id="memberNames"></div>
-        <button class="secondary wide" id="btnRebuild" type="button">Apply setup</button>
+        <button class="secondary wide" id="btnRebuild" type="button">Start chit</button>
       </div>
     </details>
 
@@ -672,6 +686,11 @@
         Creates a link with a full, editable copy of the selected fund(s). When your friend opens it, they are asked to add it to their Chit Ledger. It is a one-time copy: later changes on either phone are not synced.
       </div>
       <div class="btn-row"><button type="button" onclick="shareFunds(getSelectedExportFundIds())">Share link</button></div>
+      <div class="paste-box">
+        <div class="paste-title">Got a link from a friend?</div>
+        <label class="field"><input type="text" id="pasteShareLink" placeholder="Paste the share link here" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <div class="btn-row"><button type="button" class="secondary" onclick="pasteFromClipboard()">Paste</button><button type="button" onclick="importFromPasted()">Add from link</button></div>
+      </div>
     </div>
 
     <div class="panel">
@@ -743,7 +762,7 @@ function toast(msg, kind){ const r = document.getElementById('toastRoot'); if(!r
 
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.20';
+const APP_VERSION = 'v1.21';
 const APP_PUBLIC_URL = 'https://sunilcap.github.io/ChitLedger/'; // used for share links when the page isn't served from a normal web address
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
@@ -1710,8 +1729,22 @@ async function checkShareHash(){
   const m = /^#import=([A-Za-z0-9_.\-]+)$/.exec(location.hash || '');
   if(!m) return;
   try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+  openShareToken(m[1]);
+}
+async function pasteFromClipboard(){
+  try{ const t = await navigator.clipboard.readText(); document.getElementById('pasteShareLink').value = t; }
+  catch(e){ toast('Press and hold in the box, then choose Paste.'); }
+}
+function importFromPasted(){
+  const inp = document.getElementById('pasteShareLink');
+  const m = /import=([A-Za-z0-9_.\-]+)/.exec(inp ? inp.value : '');
+  if(!m){ toast('That doesn\'t look like a Chit Ledger share link.', 'error'); return; }
+  if(inp) inp.value = '';
+  openShareToken(m[1]);
+}
+async function openShareToken(tok){
   try{
-    const list = validateShared(await decodeShare(m[1]));
+    const list = validateShared(await decodeShare(tok));
     const desc = list.map(f => (f.name || 'Untitled') + ' (' + (f.members || []).length + ' members)').join(', ');
     askConfirm('Add shared chit fund?', desc + '. A copy will be added to your funds; changes you make stay on this device.', 'Add to my funds', () => doImportShared(list));
   }catch(e){ toast('Could not open that shared link.', 'error'); }
@@ -2593,6 +2626,7 @@ function renderState(){
     'status: <b style="color:var(--ink)">' + (cycleClosed ? 'cycle closed' : 'in progress') + '</b>';
 }
 
+let __openMonths = {};
 function renderMonths(){
   const box = document.getElementById('months');
   box.innerHTML = '';
@@ -2673,7 +2707,17 @@ function renderMonths(){
     } else if(!month.rounds.length && !month.isFinalSettle && !month.isDeferredSettleOnly && !month.isAgentMonth){
       div.innerHTML += '<div class="empty-hint">Waiting on setup…</div>';
     }
-    box.appendChild(div);
+    if(mi < months.length - 1){
+      const det = document.createElement('details');
+      det.className = 'month-block prev-month';
+      det.open = !!__openMonths[mi];
+      const who = month.rounds.map(r => escapeHtml(r.winnerName)).join(', ');
+      det.innerHTML = '<summary><span class="m-title">MONTH ' + month.index + '</span><span class="prev-sum">' + (who ? who + ' won' : (month.isAgentMonth ? 'Agent month' : 'No bids')) + '</span></summary><div class="prev-body">' + div.innerHTML + '</div>';
+      det.addEventListener('toggle', () => { __openMonths[mi] = det.open; });
+      box.appendChild(det);
+    } else {
+      box.appendChild(div);
+    }
   });
 
   renderHeldPanel(box);
@@ -2930,6 +2974,8 @@ document.getElementById('btnNewFund').addEventListener('click', () => askText('N
   }
   switchTab('funds'); // always open on the lobby
   function syncNavH(){ const n = document.querySelector('nav.tabs'); document.documentElement.style.setProperty('--nav-h', ((n && window.innerWidth <= 900) ? n.offsetHeight : 0) + 'px'); }
+  function syncTopH(){ const t = document.getElementById('topbar'); document.documentElement.style.setProperty('--top-h', (t ? t.offsetHeight : 64) + 'px'); }
+  syncTopH(); window.addEventListener('resize', syncTopH); if(window.ResizeObserver && document.getElementById('topbar')) new ResizeObserver(syncTopH).observe(document.getElementById('topbar'));
   syncNavH(); window.addEventListener('resize', syncNavH); window.addEventListener('orientationchange', syncNavH);
   if(window.ResizeObserver && document.querySelector('nav.tabs')) new ResizeObserver(syncNavH).observe(document.querySelector('nav.tabs'));
   const sv = document.getElementById('splashVer'); if(sv) sv.textContent = APP_VERSION;
@@ -2953,7 +2999,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 /* Fallback: if ads.js is missing (file opened on its own), still show the quote strip. */
 (function(){
   if(document.getElementById('adsense-bottom-bar')) return;
-  var Q=['Small savings, kept steadily, grow into big things.','Patience pays more than hurry ever will.','Trust is the real currency of a chit fund.','Every instalment on time keeps the whole circle strong.','Many small hands lift the heaviest pot.','Know your floor before you bid.','Count twice, bid once.','Steady months beat lucky months.','Pay early, sleep well.','Clear rules today, no arguments tomorrow.','Save first, spend what remains.','Keep a cushion for the month you didn\'t expect.'];
+  var Q=["Small steps every day add up to big change.", "You don\'t have to be perfect to make progress.", "Start where you are. Use what you have.", "Consistency beats intensity.", "Today\'s effort is tomorrow\'s advantage.", "Progress, not perfection.", "Dream big, begin small, keep going.", "Every expert was once a beginner.", "Difficult roads often lead to beautiful places.", "Discipline is choosing what you want most over what you want now.", "Believe you can, and you\'re halfway there.", "Your future is built by what you do today."];
   var bar=document.createElement('div'); bar.id='adsense-bottom-bar'; bar.className='ad-strip'; bar.setAttribute('role','complementary');
   var q=document.createElement('div'); q.className='quote'; q.innerHTML='<span class="ad-label">Quote</span><span class="quote-text"></span>';
   bar.appendChild(q); var t=q.querySelector('.quote-text'), i=Math.floor(Math.random()*Q.length);
