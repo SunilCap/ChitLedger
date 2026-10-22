@@ -88,12 +88,12 @@
   /* Plain reset: an inherit-based rule never reached content inside <details> in modern Chrome. */
   *,*::before,*::after{box-sizing:border-box;}
   html{
-    scroll-padding-top:calc(env(safe-area-inset-top,0px) + 72px);
     scroll-behavior:smooth;
     -webkit-text-size-adjust:100%;
     text-size-adjust:100%;
   }
-  html,body{height:100%; min-height:100dvh; overflow-x:hidden;}
+  html{min-height:100%;}
+  body{min-height:100dvh;overflow-x:hidden;overflow-x:clip;}
   body{
     margin:0;
     background:var(--paper);
@@ -109,15 +109,15 @@
     overscroll-behavior:none;
   }
   /* Keeps scrolled content from showing through the status-bar area above the sticky header. */
-  body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--paper-card);z-index:60;}
+  body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#2b1a55;z-index:60;}
   h1,h2,h3,p{margin:0;}
   :focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
 
   /* ===== Top bar ===== */
   .topbar{
-    position:sticky; top:env(safe-area-inset-top,0px); z-index:50;
+    position:fixed; top:0; left:0; right:0; z-index:50;
     display:flex; align-items:center; gap:10px;
-    padding:10px 16px;
+    padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
     background:var(--paper-card);
     border-bottom:1px solid var(--rule);
   }
@@ -179,7 +179,7 @@
   .tab-panel.active{display:block;}
   @media (min-width:901px){
     .shell{display:grid;grid-template-columns:216px minmax(0,1fr);gap:28px;padding:22px 24px;align-items:start;}
-    nav.tabs{position:sticky;top:calc(env(safe-area-inset-top,0px) + 86px);bottom:auto;flex-direction:column;gap:6px;padding:0;background:transparent;border:0;}
+    nav.tabs{position:sticky;top:calc(var(--top-h,72px) + 14px);bottom:auto;flex-direction:column;gap:6px;padding:0;background:transparent;border:0;}
     button.tab-btn{flex-direction:row;justify-content:flex-start;gap:12px;min-height:46px;padding:10px 14px;font-size:calc(14px * var(--font-scale));text-align:left;}
     button.tab-btn .tab-ic{width:24px;height:24px;border-radius:0;}
     button.tab-btn.active{background:var(--paper-2);}
@@ -418,7 +418,7 @@
   @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
   @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
   .skel{height:118px;border:1px solid var(--rule);background:linear-gradient(90deg,var(--paper-2) 25%,var(--paper-card) 50%,var(--paper-2) 75%);background-size:200% 100%;animation:shimmer 1.4s linear infinite;}
-  .update-bar{position:fixed;z-index:96;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);max-width:420px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 16px;border-radius:12px;background:var(--info-bg);color:var(--info-fg);border:1px solid var(--info-border);font-weight:700;}
+  .update-bar{position:fixed;z-index:96;left:12px;right:12px;top:calc(var(--top-h,72px) + 8px);max-width:420px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 16px;border-radius:12px;background:var(--info-bg);color:var(--info-fg);border:1px solid var(--info-border);font-weight:700;}
   .update-bar[hidden]{display:none;}
   .home-heading{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0 16px;}
   .home-heading h1{font-size:calc(24px * var(--font-scale));font-weight:800;letter-spacing:-0.03em;margin-top:3px;}
@@ -505,7 +505,8 @@
   .ad-strip.has-ad .quote{display:none;}
 
   /* ===== v1.21: nothing hides behind bars; collapsible previous months; paste box ===== */
-  html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + var(--top-h,64px) + 12px);scroll-padding-bottom:calc(var(--nav-h,72px) + var(--ad-banner-height,0px) + 16px);}
+  body{padding-top:var(--top-h,calc(64px + env(safe-area-inset-top,0px)));}
+  html{scroll-padding-top:calc(var(--top-h,64px) + 12px);scroll-padding-bottom:calc(var(--nav-h,72px) + var(--ad-banner-height,0px) + 16px);}
   body::after{content:'';position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h,72px) + var(--ad-banner-height,0px));background:var(--paper);z-index:38;pointer-events:none;}
   @media (min-width:901px){body::after{height:var(--ad-banner-height,0px);}}
   details.prev-month{padding:0;}
@@ -762,7 +763,7 @@ function toast(msg, kind){ const r = document.getElementById('toastRoot'); if(!r
 
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.21';
+const APP_VERSION = 'v1.22';
 const APP_PUBLIC_URL = 'https://sunilcap.github.io/ChitLedger/'; // used for share links when the page isn't served from a normal web address
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
