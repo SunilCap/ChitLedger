@@ -518,6 +518,24 @@
   details.prev-month .prev-body{padding:0 16px 14px;}
   .paste-box{margin-top:16px;padding-top:14px;border-top:1px solid var(--rule);}
   .paste-title{font-weight:750;margin-bottom:8px;}
+
+  /* ===== v1.23: language screen ===== */
+  .lang-screen{position:fixed;inset:0;z-index:150;background:var(--paper);overflow-y:auto;padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));}
+  .lang-screen>*{max-width:560px;margin-left:auto;margin-right:auto;}
+  .lang-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .lang-head h2{font-size:calc(20px * var(--font-scale));font-weight:800;}
+  .lang-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  @media (max-width:360px){.lang-list{grid-template-columns:1fr;}}
+  button.lang-opt{flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left;background:var(--paper-card);color:var(--ink);border:1px solid var(--rule);box-shadow:none;min-height:64px;padding:10px 14px;position:relative;font-weight:500;}
+  button.lang-opt.selected{border:2px solid var(--primary);background:var(--paper-2);padding:9px 13px;}
+  button.lang-opt .ic{position:absolute;right:10px;top:10px;color:var(--primary);}
+  .lang-native{font-size:calc(18px * var(--font-scale));font-weight:700;}
+  .lang-eng{font-size:calc(12px * var(--font-scale));color:var(--ink-soft);}
+  .lang-disc{background:var(--info-bg);color:var(--info-fg);border:1px solid var(--info-border);border-radius:12px;padding:12px 14px;font-size:calc(13px * var(--font-scale));line-height:1.55;margin-bottom:16px;}
+  .lang-disc-en{margin-top:8px;padding-top:8px;border-top:1px solid var(--info-border);}
+  .lang-suggest{background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);padding:16px;}
+  .lang-suggest h3{font-size:calc(16px * var(--font-scale));margin-bottom:10px;}
+  .lang-suggest .field{display:block;margin-bottom:10px;}.lang-suggest .field span{display:block;font-size:calc(12px * var(--font-scale));font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important;}
   }
@@ -537,6 +555,7 @@
   <div class="top-actions">
     <button type="button" class="top-btn" id="btnRules" onclick="openRules()" aria-label="Chit rules"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h10.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5z"/><path d="M8 17h10.5"/></svg><span class="btn-label">Chit rules</span></button>
     <button type="button" class="top-btn" id="btnDisplay" onclick="toggleDisplayMenu()" aria-expanded="false" aria-controls="displayMenu" aria-label="Display settings"><span style="font-weight:800;">Aa</span></button>
+    <button type="button" class="top-btn" id="btnLang" onclick="openLangScreen()" aria-label="Language"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg></button>
     <button type="button" class="top-btn" id="btnTheme" onclick="toggleTheme()" aria-label="Toggle dark mode"></button>
   </div>
   <div class="menu" id="displayMenu" role="dialog" aria-label="Display settings" hidden>
@@ -561,9 +580,9 @@
 
 <div class="shell">
   <nav class="tabs" aria-label="Main sections">
-    <button class="tab-btn active" id="tabBtnSim" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="7" height="7" rx="1.8"/><rect x="13.5" y="4" width="7" height="7" rx="1.8"/><rect x="3.5" y="14" width="7" height="6" rx="1.8"/><rect x="13.5" y="14" width="7" height="6" rx="1.8"/></svg></span><span>Simulator</span></button>
-    <button class="tab-btn" id="tabBtnProj" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><span>Loan comparison</span></button>
-    <button class="tab-btn" id="tabBtnExport" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/></svg></span><span>Export</span></button>
+    <button class="tab-btn active" id="tabBtnSim" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="7" height="7" rx="1.8"/><rect x="13.5" y="4" width="7" height="7" rx="1.8"/><rect x="3.5" y="14" width="7" height="6" rx="1.8"/><rect x="13.5" y="14" width="7" height="6" rx="1.8"/></svg></span><span data-i18n="sim">Simulator</span></button>
+    <button class="tab-btn" id="tabBtnProj" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><span data-i18n="loan">Loan comparison</span></button>
+    <button class="tab-btn" id="tabBtnExport" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/></svg></span><span data-i18n="exp">Export</span></button>
   </nav>
 
   <main class="wrap" id="main">
@@ -571,16 +590,16 @@
   <!-- LOBBY: My Chit Funds -->
   <div class="tab-panel" id="tabFunds">
     <div class="home-status"><span class="device-status" id="syncStatus"></span></div>
-    <div class="home-heading"><div><div class="eyebrow">Your groups</div><h1>My Chit Funds</h1><p>Manage your groups and track every cycle.</p></div>
-      <button type="button" id="btnNewFund" class="create-fund-btn">+ New chit fund</button></div>
+    <div class="home-heading"><div><div class="eyebrow" data-i18n="groups">Your groups</div><h1 data-i18n="myFunds">My Chit Funds</h1><p data-i18n="manage">Manage your groups and track every cycle.</p></div>
+      <button type="button" id="btnNewFund" class="create-fund-btn">+ <span data-i18n="newFund">New chit fund</span></button></div>
     <div id="installBox"></div>
     <div id="fundsList"><div class="fund-card skel"></div><div class="fund-card skel"></div></div>
-    <div class="home-foot">Your data stays on this device. No account required.</div>
+    <div class="home-foot" data-i18n="dataStays">Your data stays on this device. No account required.</div>
   </div>
 
   <!-- SIMULATOR TAB -->
   <div class="tab-panel active" id="tabSim">
-    <div class="pagehead"><h1>Simulator</h1><p>Track every bid, payout and balance — one round at a time.</p></div>
+    <div class="pagehead"><h1 data-i18n="sim">Simulator</h1><p>Track every bid, payout and balance — one round at a time.</p></div>
 
     <div id="heroBox"></div>
 
@@ -589,7 +608,7 @@
       <summary>Group setup</summary>
       <div class="inner">
         <label class="field">
-          <span>Chit rules</span>
+          <span data-i18n="rules">Chit rules</span>
           <select id="cfgRules" onchange="onRuleChange(this.value)" style="display:none"></select><div id="rulePicker" class="rulecards"></div>
         </label>
         <div class="rules-hint" id="rulesBlurb"></div>
@@ -609,7 +628,7 @@
           <input type="number" id="cfgFloor" min="0" step="500" value="10000" inputmode="numeric">
         </label>
         <div id="memberNames"></div>
-        <button class="secondary wide" id="btnRebuild" type="button">Start chit</button>
+        <button class="secondary wide" id="btnRebuild" type="button" data-i18n="start">Start chit</button>
       </div>
     </details>
 
@@ -641,7 +660,7 @@
 
   <!-- PROJECTION TAB -->
   <div class="tab-panel" id="tabProj">
-    <div class="pagehead"><h1>Loan comparison</h1><p>See how each chit outcome compares with a conventional bank loan.</p></div>
+    <div class="pagehead"><h1 data-i18n="loan">Loan comparison</h1><p>See how each chit outcome compares with a conventional bank loan.</p></div>
     <div class="panel">
       <h2>Loan comparison settings</h2>
       <label class="field">
@@ -667,7 +686,7 @@
   <div class="tab-panel" id="tabRules">
     <div class="btn-row" style="margin:0 0 12px;"><button type="button" class="secondary" onclick="closeRules()">← Back</button></div>
     <div class="panel">
-      <h2>Chit rules</h2>
+      <h2 data-i18n="rules">Chit rules</h2>
       <div class="rules-text" id="rulesIntro"></div>
     </div>
     <div id="rulesList" style="margin-top:14px;"></div>
@@ -731,6 +750,7 @@
 <div id="splash" role="status" aria-label="Loading Chit Ledger"><svg width="88" height="88" viewBox="0 0 36 36" aria-hidden="true"><defs><linearGradient id="markGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6A4BC0"/><stop offset="1" stop-color="#3B236E"/></linearGradient></defs><rect width="88" height="88" rx="10" fill="url(#markGrad2)"/><rect x="16" y="8.5" width="12" height="19" rx="2.6" fill="#fff" opacity="0.96"/><path d="M19 13.5h6M19 17.5h6M19 21.5h3.5" stroke="#4B2E83" stroke-width="1.7" stroke-linecap="round"/><ellipse cx="12" cy="26" rx="6" ry="2.5" fill="#C98A12"/><ellipse cx="12" cy="23.4" rx="6" ry="2.5" fill="#F0BD58"/><ellipse cx="12" cy="20.8" rx="6" ry="2.5" fill="#F7D27E"/></svg><div class="sp-name">Chit Ledger</div><div class="sp-tag">Run your chit with clarity</div><div class="sp-bar"><span></span></div><div class="sp-note">Loading your chit funds…</div><div class="sp-foot">Works offline · <span id="splashVer"></span></div></div>
 <script>setTimeout(function(){var e=document.getElementById('splash');if(e)e.classList.add('hide')},4000)</script>
 <div id="updateBar" class="update-bar" hidden><span>Update available</span><button type="button" onclick="location.reload()">Refresh</button></div>
+<div id="langRoot"></div>
 <div id="sheetRoot"></div><div id="toastRoot" aria-live="polite"></div>
 <script>
 /* ---------- State ---------- */
@@ -748,7 +768,7 @@ let heldFunds = []; // leftover pot amounts set aside until the cycle closes: {i
 
 function shortfallMode(){ return document.querySelector('input[name=shortfall]:checked').value; }
 function fmt(n){ n = Math.round(n); return '₹' + n.toLocaleString('en-IN'); }
-const ICONS = {share:'<path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/>',save:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',book:'<path d="M5 4.5h10.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5z"/><path d="M8 17h10.5"/>',down:'<path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/>',file:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 13h5M9.5 17h5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>'};
+const ICONS = {globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',share:'<path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/>',save:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',book:'<path d="M5 4.5h10.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5z"/><path d="M8 17h10.5"/>',down:'<path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/>',file:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9.5 13h5M9.5 17h5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>'};
 function ic(n, z){ z = z || 18; return '<svg class="ic" width="' + z + '" height="' + z + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; }
 function mdot(id){ return '<span class="mdot" style="background:' + memberColorById(id) + ';"></span>'; }
 /* Bottom-sheet dialogs and toasts (replace confirm / prompt / alert) */
@@ -763,7 +783,7 @@ function toast(msg, kind){ const r = document.getElementById('toastRoot'); if(!r
 
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.22';
+const APP_VERSION = 'v1.24';
 const APP_PUBLIC_URL = 'https://sunilcap.github.io/ChitLedger/'; // used for share links when the page isn't served from a normal web address
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
@@ -853,6 +873,75 @@ function updateHeaderFund(){
   const f = (typeof fundsStore !== 'undefined' && fundsStore.funds) ? fundsStore.funds[activeFundId] : null;
   el.textContent = f ? (f.name || 'Untitled') : 'No chit fund';
 }
+/* ---------- Languages (v1.23): UI text tables, language screen, suggestion box ---------- */
+const LANGS = [{"c": "en", "n": "English", "e": "English"}, {"c": "hi", "n": "हिन्दी", "e": "Hindi"}, {"c": "ta", "n": "தமிழ்", "e": "Tamil"}, {"c": "te", "n": "తెలుగు", "e": "Telugu"}, {"c": "kn", "n": "ಕನ್ನಡ", "e": "Kannada"}, {"c": "ml", "n": "മലയാളം", "e": "Malayalam"}, {"c": "mr", "n": "मराठी", "e": "Marathi"}, {"c": "bn", "n": "বাংলা", "e": "Bengali"}, {"c": "gu", "n": "ગુજરાતી", "e": "Gujarati"}];
+const I18N = {"en": {"sim": "Simulator", "loan": "Loan comparison", "exp": "Export", "rules": "Chit rules", "lang": "Language", "groups": "Your groups", "myFunds": "My Chit Funds", "manage": "Manage your groups and track every cycle.", "newFund": "New chit fund", "dataStays": "Your data stays on this device. No account required.", "start": "Start chit", "prog": "In progress", "closed": "Closed", "members": "members", "pot": "monthly pot", "won": "won", "cancel": "Cancel", "close": "Close", "chooseLang": "Choose your language", "disc": "Translations may contain mistakes, and money terms can be worded differently by region. If anything is unclear, check the English version or suggest a better word below. Only the main screens are translated so far.", "sgTitle": "Suggest a better word", "sgNow": "Word or phrase in the app", "sgBetter": "Your suggested word", "sgNote": "Note (optional)", "sgSend": "Send suggestion", "sgCopy": "Copy"}, "hi": {"sim": "सिम्युलेटर", "loan": "लोन तुलना", "exp": "एक्सपोर्ट", "rules": "चिट नियम", "lang": "भाषा", "groups": "आपके समूह", "myFunds": "मेरे चिट फंड", "manage": "अपने समूह संभालें और हर चक्र पर नज़र रखें।", "newFund": "नया चिट फंड", "dataStays": "आपका डेटा इसी डिवाइस पर रहता है। खाता ज़रूरी नहीं।", "start": "चिट शुरू करें", "prog": "जारी", "closed": "बंद", "members": "सदस्य", "pot": "मासिक पॉट", "won": "जीते", "cancel": "रद्द करें", "close": "बंद करें", "chooseLang": "अपनी भाषा चुनें", "disc": "अनुवाद में गलतियाँ हो सकती हैं, और पैसों से जुड़े शब्द हर क्षेत्र में अलग हो सकते हैं। कुछ अस्पष्ट लगे तो अंग्रेज़ी देखें या नीचे बेहतर शब्द सुझाएँ। अभी केवल मुख्य स्क्रीन का अनुवाद हुआ है।", "sgTitle": "बेहतर शब्द सुझाएँ", "sgNow": "ऐप में मौजूद शब्द", "sgBetter": "आपका सुझाया शब्द", "sgNote": "टिप्पणी (वैकल्पिक)", "sgSend": "सुझाव भेजें", "sgCopy": "कॉपी करें"}, "ta": {"sim": "சிமுலேட்டர்", "loan": "கடன் ஒப்பீடு", "exp": "ஏற்றுமதி", "rules": "சீட்டு விதிகள்", "lang": "மொழி", "groups": "உங்கள் குழுக்கள்", "myFunds": "என் சீட்டு நிதிகள்", "manage": "உங்கள் குழுக்களை நிர்வகித்து ஒவ்வொரு சுழற்சியையும் கண்காணிக்கவும்.", "newFund": "புதிய சீட்டு நிதி", "dataStays": "உங்கள் தரவு இந்த சாதனத்திலேயே இருக்கும். கணக்கு தேவையில்லை.", "start": "சீட்டைத் தொடங்கு", "prog": "நடைபெறுகிறது", "closed": "முடிந்தது", "members": "உறுப்பினர்கள்", "pot": "மாதத் தொகை", "won": "வென்றனர்", "cancel": "ரத்து", "close": "மூடு", "chooseLang": "உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்", "disc": "மொழிபெயர்ப்பில் பிழைகள் இருக்கலாம்; பணம் தொடர்பான சொற்கள் பகுதிக்கு ஏற்ப மாறுபடலாம். தெளிவில்லை என்றால் ஆங்கிலத்தைப் பார்க்கவும் அல்லது கீழே சிறந்த சொல்லை பரிந்துரைக்கவும். இதுவரை முக்கியத் திரைகள் மட்டுமே மொழிபெயர்க்கப்பட்டுள்ளன.", "sgTitle": "சிறந்த சொல்லைப் பரிந்துரைக்கவும்", "sgNow": "செயலியில் உள்ள சொல்", "sgBetter": "உங்கள் பரிந்துரை", "sgNote": "குறிப்பு (விருப்பம்)", "sgSend": "பரிந்துரையை அனுப்பு", "sgCopy": "நகலெடு"}, "te": {"sim": "సిమ్యులేటర్", "loan": "రుణ పోలిక", "exp": "ఎగుమతి", "rules": "చిట్ నియమాలు", "lang": "భాష", "groups": "మీ గ్రూపులు", "myFunds": "నా చిట్ ఫండ్లు", "manage": "మీ గ్రూపులను నిర్వహించండి, ప్రతి చక్రాన్ని ట్రాక్ చేయండి.", "newFund": "కొత్త చిట్ ఫండ్", "dataStays": "మీ డేటా ఈ పరికరంలోనే ఉంటుంది. ఖాతా అవసరం లేదు.", "start": "చిట్ ప్రారంభించు", "prog": "కొనసాగుతోంది", "closed": "ముగిసింది", "members": "సభ్యులు", "pot": "నెలవారీ పాట్", "won": "గెలిచారు", "cancel": "రద్దు", "close": "మూసివేయి", "chooseLang": "మీ భాషను ఎంచుకోండి", "disc": "అనువాదంలో పొరపాట్లు ఉండవచ్చు, డబ్బుకు సంబంధించిన పదాలు ప్రాంతాన్ని బట్టి మారవచ్చు. అస్పష్టంగా ఉంటే ఇంగ్లీష్ చూడండి లేదా కింద మెరుగైన పదాన్ని సూచించండి. ఇప్పటివరకు ప్రధాన స్క్రీన్లు మాత్రమే అనువదించబడ్డాయి.", "sgTitle": "మెరుగైన పదాన్ని సూచించండి", "sgNow": "యాప్‌లోని పదం", "sgBetter": "మీ సూచన", "sgNote": "గమనిక (ఐచ్ఛికం)", "sgSend": "సూచన పంపండి", "sgCopy": "కాపీ"}, "kn": {"sim": "ಸಿಮ್ಯುಲೇಟರ್", "loan": "ಸಾಲ ಹೋಲಿಕೆ", "exp": "ರಫ್ತು", "rules": "ಚೀಟಿ ನಿಯಮಗಳು", "lang": "ಭಾಷೆ", "groups": "ನಿಮ್ಮ ಗುಂಪುಗಳು", "myFunds": "ನನ್ನ ಚೀಟಿ ನಿಧಿಗಳು", "manage": "ನಿಮ್ಮ ಗುಂಪುಗಳನ್ನು ನಿರ್ವಹಿಸಿ, ಪ್ರತಿ ಚಕ್ರವನ್ನು ಗಮನಿಸಿ.", "newFund": "ಹೊಸ ಚೀಟಿ ನಿಧಿ", "dataStays": "ನಿಮ್ಮ ಡೇಟಾ ಈ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತದೆ. ಖಾತೆ ಬೇಕಿಲ್ಲ.", "start": "ಚೀಟಿ ಆರಂಭಿಸಿ", "prog": "ನಡೆಯುತ್ತಿದೆ", "closed": "ಮುಗಿದಿದೆ", "members": "ಸದಸ್ಯರು", "pot": "ಮಾಸಿಕ ಮೊತ್ತ", "won": "ಗೆದ್ದಿದ್ದಾರೆ", "cancel": "ರದ್ದುಮಾಡಿ", "close": "ಮುಚ್ಚಿ", "chooseLang": "ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ", "disc": "ಅನುವಾದದಲ್ಲಿ ತಪ್ಪುಗಳಿರಬಹುದು, ಹಣಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಪದಗಳು ಪ್ರದೇಶಕ್ಕೆ ತಕ್ಕಂತೆ ಬದಲಾಗಬಹುದು. ಅಸ್ಪಷ್ಟವಾದರೆ ಇಂಗ್ಲಿಷ್ ನೋಡಿ ಅಥವಾ ಕೆಳಗೆ ಉತ್ತಮ ಪದವನ್ನು ಸೂಚಿಸಿ. ಇಲ್ಲಿಯವರೆಗೆ ಮುಖ್ಯ ಪರದೆಗಳು ಮಾತ್ರ ಅನುವಾದವಾಗಿವೆ.", "sgTitle": "ಉತ್ತಮ ಪದವನ್ನು ಸೂಚಿಸಿ", "sgNow": "ಆ್ಯಪ್‌ನಲ್ಲಿರುವ ಪದ", "sgBetter": "ನಿಮ್ಮ ಸಲಹೆ", "sgNote": "ಟಿಪ್ಪಣಿ (ಐಚ್ಛಿಕ)", "sgSend": "ಸಲಹೆ ಕಳುಹಿಸಿ", "sgCopy": "ನಕಲಿಸಿ"}, "ml": {"sim": "സിമുലേറ്റർ", "loan": "വായ്പ താരതമ്യം", "exp": "എക്സ്പോർട്ട്", "rules": "ചിട്ടി നിയമങ്ങൾ", "lang": "ഭാഷ", "groups": "നിങ്ങളുടെ ഗ്രൂപ്പുകൾ", "myFunds": "എന്റെ ചിട്ടി ഫണ്ടുകൾ", "manage": "നിങ്ങളുടെ ഗ്രൂപ്പുകൾ കൈകാര്യം ചെയ്യുകയും ഓരോ ചക്രവും ട്രാക്ക് ചെയ്യുകയും ചെയ്യുക.", "newFund": "പുതിയ ചിട്ടി ഫണ്ട്", "dataStays": "നിങ്ങളുടെ ഡാറ്റ ഈ ഉപകരണത്തിൽ തന്നെ നിൽക്കും. അക്കൗണ്ട് ആവശ്യമില്ല.", "start": "ചിട്ടി ആരംഭിക്കുക", "prog": "നടക്കുന്നു", "closed": "അവസാനിച്ചു", "members": "അംഗങ്ങൾ", "pot": "പ്രതിമാസ തുക", "won": "വിജയിച്ചു", "cancel": "റദ്ദാക്കുക", "close": "അടയ്ക്കുക", "chooseLang": "നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക", "disc": "വിവർത്തനത്തിൽ തെറ്റുകൾ ഉണ്ടാകാം, പണവുമായി ബന്ധപ്പെട്ട വാക്കുകൾ പ്രദേശം അനുസരിച്ച് മാറാം. വ്യക്തമല്ലെങ്കിൽ ഇംഗ്ലീഷ് നോക്കുക, അല്ലെങ്കിൽ താഴെ മികച്ച വാക്ക് നിർദ്ദേശിക്കുക. ഇതുവരെ പ്രധാന സ്ക്രീനുകൾ മാത്രമേ വിവർത്തനം ചെയ്തിട്ടുള്ളൂ.", "sgTitle": "മികച്ച വാക്ക് നിർദ്ദേശിക്കുക", "sgNow": "ആപ്പിലെ വാക്ക്", "sgBetter": "നിങ്ങളുടെ നിർദ്ദേശം", "sgNote": "കുറിപ്പ് (ഓപ്ഷണൽ)", "sgSend": "നിർദ്ദേശം അയയ്ക്കുക", "sgCopy": "പകർത്തുക"}, "mr": {"sim": "सिम्युलेटर", "loan": "कर्ज तुलना", "exp": "एक्सपोर्ट", "rules": "चिट नियम", "lang": "भाषा", "groups": "तुमचे गट", "myFunds": "माझे चिट फंड", "manage": "तुमचे गट व्यवस्थापित करा आणि प्रत्येक फेरीवर लक्ष ठेवा.", "newFund": "नवीन चिट फंड", "dataStays": "तुमचा डेटा याच डिव्हाइसवर राहतो. खाते आवश्यक नाही.", "start": "चिट सुरू करा", "prog": "सुरू आहे", "closed": "बंद", "members": "सदस्य", "pot": "मासिक रक्कम", "won": "जिंकले", "cancel": "रद्द करा", "close": "बंद करा", "chooseLang": "तुमची भाषा निवडा", "disc": "भाषांतरात चुका असू शकतात, आणि पैशांशी संबंधित शब्द प्रदेशानुसार वेगळे असू शकतात. काही अस्पष्ट वाटल्यास इंग्रजी पहा किंवा खाली चांगला शब्द सुचवा. आतापर्यंत फक्त मुख्य स्क्रीनचे भाषांतर झाले आहे.", "sgTitle": "चांगला शब्द सुचवा", "sgNow": "अ‍ॅपमधील शब्द", "sgBetter": "तुमचा सुचवलेला शब्द", "sgNote": "टीप (ऐच्छिक)", "sgSend": "सूचना पाठवा", "sgCopy": "कॉपी करा"}, "bn": {"sim": "সিমুলেটর", "loan": "ঋণ তুলনা", "exp": "এক্সপোর্ট", "rules": "চিট নিয়ম", "lang": "ভাষা", "groups": "আপনার গ্রুপ", "myFunds": "আমার চিট ফান্ড", "manage": "আপনার গ্রুপ পরিচালনা করুন এবং প্রতিটি চক্র ট্র্যাক করুন।", "newFund": "নতুন চিট ফান্ড", "dataStays": "আপনার ডেটা এই ডিভাইসেই থাকে। অ্যাকাউন্ট লাগে না।", "start": "চিট শুরু করুন", "prog": "চলছে", "closed": "শেষ", "members": "সদস্য", "pot": "মাসিক পট", "won": "জিতেছেন", "cancel": "বাতিল", "close": "বন্ধ করুন", "chooseLang": "আপনার ভাষা বেছে নিন", "disc": "অনুবাদে ভুল থাকতে পারে, এবং টাকার শব্দ অঞ্চলভেদে আলাদা হতে পারে। অস্পষ্ট মনে হলে ইংরেজি দেখুন বা নিচে ভালো শব্দ প্রস্তাব করুন। এখনও শুধু প্রধান স্ক্রিনগুলো অনুবাদ করা হয়েছে।", "sgTitle": "ভালো শব্দ প্রস্তাব করুন", "sgNow": "অ্যাপে থাকা শব্দ", "sgBetter": "আপনার প্রস্তাব", "sgNote": "মন্তব্য (ঐচ্ছিক)", "sgSend": "প্রস্তাব পাঠান", "sgCopy": "কপি"}, "gu": {"sim": "સિમ્યુલેટર", "loan": "લોન સરખામણી", "exp": "એક્સપોર્ટ", "rules": "ચિટ નિયમો", "lang": "ભાષા", "groups": "તમારા ગ્રુપ", "myFunds": "મારા ચિટ ફંડ", "manage": "તમારા ગ્રુપ સંભાળો અને દરેક ચક્ર પર નજર રાખો.", "newFund": "નવું ચિટ ફંડ", "dataStays": "તમારો ડેટા આ ડિવાઇસ પર જ રહે છે. એકાઉન્ટ જરૂરી નથી.", "start": "ચિટ શરૂ કરો", "prog": "ચાલુ", "closed": "બંધ", "members": "સભ્યો", "pot": "માસિક પોટ", "won": "જીત્યા", "cancel": "રદ કરો", "close": "બંધ કરો", "chooseLang": "તમારી ભાષા પસંદ કરો", "disc": "અનુવાદમાં ભૂલો હોઈ શકે છે, અને પૈસા સંબંધિત શબ્દો પ્રદેશ મુજબ અલગ હોઈ શકે છે. કંઈ અસ્પષ્ટ લાગે તો અંગ્રેજી જુઓ અથવા નીચે સારો શબ્દ સૂચવો. અત્યારે ફક્ત મુખ્ય સ્ક્રીનનો અનુવાદ થયો છે.", "sgTitle": "સારો શબ્દ સૂચવો", "sgNow": "એપમાંનો શબ્દ", "sgBetter": "તમારું સૂચન", "sgNote": "નોંધ (વૈકલ્પિક)", "sgSend": "સૂચન મોકલો", "sgCopy": "કૉપિ કરો"}};
+const LANG_KEY = 'chitLedgerLang';
+const FEEDBACK_EMAIL = ''; // TODO: set to the address that should receive word suggestions (empty = copy/share instead)
+const LANG_FONT = {hi:'Devanagari', mr:'Devanagari', ta:'Tamil', te:'Telugu', kn:'Kannada', ml:'Malayalam', bn:'Bengali', gu:'Gujarati'};
+let lang = 'en';
+function tr(k){ return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+function applyLang(){
+  document.documentElement.setAttribute('lang', lang);
+  const fam = LANG_FONT[lang], root = document.documentElement;
+  let link = document.getElementById('langFontLink');
+  if(fam){
+    if(!link){ link = document.createElement('link'); link.id = 'langFontLink'; link.rel = 'stylesheet'; if(document.head && document.head.appendChild) document.head.appendChild(link); }
+    link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+' + fam + ':wght@400;600;700&display=swap';
+    root.style.setProperty('--font-ui', "'Noto Sans " + fam + "','Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif");
+  } else {
+    if(link && link.remove) link.remove();
+    root.style.removeProperty('--font-ui');
+  }
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.getAttribute('data-i18n')); });
+  const lb = document.getElementById('btnLang'); if(lb) lb.setAttribute('aria-label', tr('lang'));
+  renderFundSelector();
+}
+function loadLang(){
+  let c = null;
+  try{ c = localStorage.getItem(LANG_KEY); }catch(e){}
+  if(!c){ const n = ((navigator && navigator.language) || 'en').slice(0, 2).toLowerCase(); c = I18N[n] ? n : 'en'; }
+  lang = I18N[c] ? c : 'en';
+  applyLang();
+}
+function setLang(c){
+  if(!I18N[c]) return;
+  lang = c;
+  try{ localStorage.setItem(LANG_KEY, c); }catch(e){}
+  applyLang(); renderLangScreen();
+}
+function openLangScreen(){ renderLangScreen(); }
+function closeLangScreen(){
+  try{ if(!localStorage.getItem(LANG_KEY)) localStorage.setItem(LANG_KEY, lang); }catch(e){}
+  const r = document.getElementById('langRoot'); if(r) r.innerHTML = '';
+}
+function renderLangScreen(){
+  const r = document.getElementById('langRoot'); if(!r) return;
+  const keep = ['sgNowIn', 'sgBetterIn', 'sgNoteIn'].map(id => { const e = document.getElementById(id); return e ? e.value : ''; });
+  const cur = LANGS.filter(l => l.c === lang)[0];
+  r.innerHTML = '<div class="lang-screen" role="dialog" aria-modal="true"><div class="lang-head"><h2>' + escapeHtml(tr('chooseLang')) + '</h2><button type="button" class="icon-btn" onclick="closeLangScreen()" aria-label="' + escapeHtml(tr('close')) + '">&#10005;</button></div>' +
+    '<div class="lang-list">' + LANGS.map(l => '<button type="button" class="lang-opt' + (l.c === lang ? ' selected' : '') + '" lang="' + l.c + '" aria-pressed="' + (l.c === lang) + '" onclick="setLang(\'' + l.c + '\')"><span class="lang-native">' + l.n + '</span><span class="lang-eng">' + l.e + '</span>' + (l.c === lang ? ic('check', 20) : '') + '</button>').join('') + '</div>' +
+    '<div class="lang-disc" role="note">' + escapeHtml(tr('disc')) + (lang !== 'en' ? '<div class="lang-disc-en">' + escapeHtml(I18N.en.disc) + '</div>' : '') + '</div>' +
+    '<div class="lang-suggest"><h3>' + escapeHtml(tr('sgTitle')) + ' (' + cur.n + ')</h3>' +
+    '<label class="field"><span>' + escapeHtml(tr('sgNow')) + '</span><input type="text" id="sgNowIn" maxlength="120" value="' + escapeHtml(keep[0]) + '"></label>' +
+    '<label class="field"><span>' + escapeHtml(tr('sgBetter')) + '</span><input type="text" id="sgBetterIn" maxlength="120" lang="' + lang + '" value="' + escapeHtml(keep[1]) + '"></label>' +
+    '<label class="field"><span>' + escapeHtml(tr('sgNote')) + '</span><input type="text" id="sgNoteIn" maxlength="200" value="' + escapeHtml(keep[2]) + '"></label>' +
+    '<div class="btn-row"><button type="button" class="secondary" onclick="sendSuggestion(true)">' + escapeHtml(tr('sgCopy')) + '</button><button type="button" onclick="sendSuggestion(false)">' + escapeHtml(tr('sgSend')) + '</button></div></div></div>';
+}
+function suggestionText(){
+  const v = id => ((document.getElementById(id) || {}).value || '').trim();
+  const cur = LANGS.filter(l => l.c === lang)[0];
+  return {better: v('sgBetterIn'), text: 'Chit Ledger word suggestion\nLanguage: ' + cur.e + ' (' + lang + ')\nApp version: ' + APP_VERSION + '\nWord in app: ' + v('sgNowIn') + '\nSuggested word: ' + v('sgBetterIn') + '\nNote: ' + v('sgNoteIn')};
+}
+async function sendSuggestion(copyOnly){
+  const sg = suggestionText();
+  if(!sg.better){ toast(tr('sgBetter') + '?', 'error'); return; }
+  if(!copyOnly && FEEDBACK_EMAIL){ location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent('Chit Ledger word suggestion (' + lang + ')') + '&body=' + encodeURIComponent(sg.text); return; }
+  if(!copyOnly && navigator.share){ try{ await navigator.share({title: 'Chit Ledger word suggestion', text: sg.text}); return; }catch(e){ if(e && e.name === 'AbortError') return; } }
+  try{ await navigator.clipboard.writeText(sg.text); toast('\u2713 ' + tr('sgCopy')); }
+  catch(e){ toast(sg.text.replace(/\n/g, ' | ')); }
+}
+
 function goToFunds(){ switchTab('funds'); }
 
 /* ---------- Technical (minimum-bid) months simulation ----------
@@ -917,6 +1006,7 @@ function saveState(){
   fundsStore.funds[activeFundId] = doc;
   fundsStore.activeId = activeFundId;
   persistFundsStore();
+  renderFundSelector(); // keep the lobby cards in step with the latest bid
   if(dbAvailable && dbCap){
     dbCap.doc('funds/' + activeFundId).set(doc).catch(err => {
       console.warn('shared save failed', err);
@@ -1568,6 +1658,7 @@ function switchTab(which){
   document.getElementById('tabExport').classList.toggle('active', which==='export');
   document.getElementById('tabRules').classList.toggle('active', which==='rules');
   document.getElementById('tabFunds').classList.toggle('active', which==='funds');
+  if(which==='funds') renderFundSelector();
   const rulesBtn = document.getElementById('btnRules');
   if(rulesBtn) rulesBtn.classList.toggle('active', which==='rules');
   window.scrollTo(0, 0);
@@ -1950,7 +2041,7 @@ async function generatePDF(){
     const cfg = f.config || {};
     doc.text(
       'Members: ' + (cfg.count||'—') + '   Monthly contribution: ' + fmt(cfg.contribution||0) +
-      '   Minimum floor: ' + fmt(cfg.floor||0) + '   Status: ' + (f.cycleClosed ? 'Closed' : 'In progress'),
+      '   Minimum floor: ' + fmt(cfg.floor||0) + '   Status: ' + (f.cycleClosed ? tr('closed') : tr('prog')),
       14, 25
     );
     doc.text(ruleSummaryForPdf(f), 14, 30);
@@ -2041,9 +2132,9 @@ function renderFundSelector(){
     const n = c.count || mem.length || 0, won = mem.filter(m => m.won).length, o = f.ruleOptions || {};
     const rn = r.name.split(' —')[0] + ((r.agent && r.agent.commission && o.pct !== undefined) ? ' (' + o.pct + '%)' : '');
     return '<article class="fund-card accent-' + rid + (id === activeFundId ? ' is-active' : '') + '"><button type="button" class="fund-open" onclick="openFund(\'' + id + '\')">' +
-      '<span class="fund-top"><span class="fund-name">' + escapeHtml(f.name || 'Untitled') + '</span><span class="tag ' + (f.cycleClosed ? 'pool' : 'settled') + '">' + (f.cycleClosed ? 'Closed' : 'In progress') + '</span></span>' +
-      '<span class="fund-meta">' + escapeHtml(rn) + '</span><span class="fund-meta"><b>' + n + '</b> members · <b>' + fmt(n * (c.contribution || 0)) + '</b> monthly pot</span>' +
-      '<span class="fund-prog"><span class="progress"><span style="width:' + (n ? won / n * 100 : 0) + '%"></span></span><span class="fund-meta">' + won + ' of ' + n + ' won</span></span></button>' +
+      '<span class="fund-top"><span class="fund-name">' + escapeHtml(f.name || 'Untitled') + '</span><span class="tag ' + (f.cycleClosed ? 'pool' : 'settled') + '">' + (f.cycleClosed ? tr('closed') : tr('prog')) + '</span></span>' +
+      '<span class="fund-meta">' + escapeHtml(rn) + '</span><span class="fund-meta"><b>' + n + '</b> ' + tr('members') + ' · <b>' + fmt(n * (c.contribution || 0)) + '</b> ' + tr('pot') + '</span>' +
+      '<span class="fund-prog"><span class="progress"><span style="width:' + (n ? won / n * 100 : 0) + '%"></span></span><span class="fund-meta">' + won + ' / ' + n + ' ' + tr('won') + '</span></span></button>' +
       '<div class="fund-tools"><button type="button" class="icon-btn" onclick="shareFunds([\'' + id + '\'])" aria-label="Share">' + ic('share') + '</button><button type="button" class="icon-btn" onclick="startRenameFund(\'' + id + '\')" aria-label="Rename">' + ic('edit') + '</button><button type="button" class="icon-btn" onclick="confirmDeleteFund(\'' + id + '\')" aria-label="Delete">' + ic('trash') + '</button></div></article>';
   }).join('');
 }
@@ -2613,7 +2704,7 @@ function renderState(){
     const f = fundsStore.funds[activeFundId] || {}, pot = config.count * config.contribution, left = members.length - won;
     const A = R().agent, third = (A && A.pool !== false) ? ['Pool balance', fmt(agentPool())] : (A ? ['Agent earned', fmt(agentEarningsOf(months))] : ['Held aside', fmt(heldTotal)]);
     hb.innerHTML = '<div class="hero"><div class="eyebrow">Group progress</div><h2>' + escapeHtml(f.name || 'Chit fund') + '</h2>' +
-      '<div class="chips"><span class="tag pool">' + escapeHtml(R().name) + '</span><span class="tag">' + members.length + ' members</span><span class="tag ' + (cycleClosed ? 'pool' : 'settled') + '">' + (cycleClosed ? 'Closed' : 'In progress') + '</span></div>' +
+      '<div class="chips"><span class="tag pool">' + escapeHtml(R().name) + '</span><span class="tag">' + members.length + ' ' + tr('members') + '</span><span class="tag ' + (cycleClosed ? 'pool' : 'settled') + '">' + (cycleClosed ? tr('closed') : tr('prog')) + '</span></div>' +
       '<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + members.length + '" aria-valuenow="' + won + '"><span style="width:' + (members.length ? won / members.length * 100 : 0) + '%"></span></div>' +
       '<div class="tiles"><div class="stat">Pot per month<b>' + fmt(pot) + '</b></div><div class="stat">Won<b>' + won + ' / ' + members.length + '</b></div><div class="stat">Members left<b>' + left + '</b></div><div class="stat">' + third[0] + '<b>' + third[1] + '</b></div></div></div>';
   }
@@ -2973,6 +3064,7 @@ document.getElementById('btnNewFund').addEventListener('click', () => askText('N
   } else {
     updateSyncStatusUI();
   }
+  loadLang();
   switchTab('funds'); // always open on the lobby
   function syncNavH(){ const n = document.querySelector('nav.tabs'); document.documentElement.style.setProperty('--nav-h', ((n && window.innerWidth <= 900) ? n.offsetHeight : 0) + 'px'); }
   function syncTopH(){ const t = document.getElementById('topbar'); document.documentElement.style.setProperty('--top-h', (t ? t.offsetHeight : 64) + 'px'); }
@@ -2981,6 +3073,7 @@ document.getElementById('btnNewFund').addEventListener('click', () => askText('N
   if(window.ResizeObserver && document.querySelector('nav.tabs')) new ResizeObserver(syncNavH).observe(document.querySelector('nav.tabs'));
   const sv = document.getElementById('splashVer'); if(sv) sv.textContent = APP_VERSION;
   setTimeout(hideSplash, 600);
+  try{ if(!localStorage.getItem(LANG_KEY)) setTimeout(openLangScreen, 900); }catch(e){}
   setTimeout(checkShareHash, 750);
 })();
 </script>
