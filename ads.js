@@ -130,11 +130,24 @@
   }
   function reduced() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
+  /* Detects the Android Trusted Web Activity wrapper. It opens the site with an android-app:// referrer,
+   * and the app's start URL should carry ?source=twa. Remembered per session only, because a TWA shares
+   * storage with Chrome and we must not switch ads off for normal Chrome visits. */
+  function isAndroidApp() {
+    try {
+      var fromApp = (document.referrer || '').indexOf('android-app://') === 0 || /[?&]source=twa(&|$)/.test(location.search);
+      if (fromApp) sessionStorage.setItem('chitLedgerInApp', '1');
+      return sessionStorage.getItem('chitLedgerInApp') === '1';
+    } catch (e) { return false; }
+  }
+
   function initWebAdSense() {
     // TODO: fill these in from your AdSense account. Until both are real values, only quotes show.
     var ADSENSE_CLIENT_ID = 'ca-pub-xxxxxxxxxxxxxxxx';
     var ADSENSE_SLOT_ID = 'xxxxxxxxxx';
     var configured = !(/x{4}/i.test(ADSENSE_CLIENT_ID) || /x{4}/i.test(ADSENSE_SLOT_ID));
+    // AdSense is not allowed inside an app, so the Android app wrapper shows quotes only.
+    if (isAndroidApp()) configured = false;
 
     var bar = document.createElement('div');
     bar.id = 'adsense-bottom-bar';
