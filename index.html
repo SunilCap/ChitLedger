@@ -536,6 +536,14 @@
   .lang-suggest{background:var(--paper-card);border:1px solid var(--rule);border-radius:var(--radius);padding:16px;}
   .lang-suggest h3{font-size:calc(16px * var(--font-scale));margin-bottom:10px;}
   .lang-suggest .field{display:block;margin-bottom:10px;}.lang-suggest .field span{display:block;font-size:calc(12px * var(--font-scale));font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
+
+  /* ===== v1.28: strip + nav live in one bottom dock, so they can never overlap ===== */
+  @media (max-width:900px){
+    #bottomDock{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-direction:column;background:var(--paper);}
+    #bottomDock nav.tabs{position:static;}
+    #bottomDock .ad-strip{position:static;left:auto;right:auto;bottom:auto;margin:6px max(10px,env(safe-area-inset-right,0px)) 0 max(10px,env(safe-area-inset-left,0px));z-index:auto;flex:none;}
+  }
+  @media (min-width:901px){#bottomDock{display:contents;}}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important;}
   }
@@ -579,11 +587,13 @@
 </header>
 
 <div class="shell">
+  <div id="bottomDock">
   <nav class="tabs" aria-label="Main sections">
     <button class="tab-btn active" id="tabBtnSim" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="7" height="7" rx="1.8"/><rect x="13.5" y="4" width="7" height="7" rx="1.8"/><rect x="3.5" y="14" width="7" height="6" rx="1.8"/><rect x="13.5" y="14" width="7" height="6" rx="1.8"/></svg></span><span data-i18n="sim">Simulator</span></button>
     <button class="tab-btn" id="tabBtnProj" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><span data-i18n="loan">Loan comparison</span></button>
     <button class="tab-btn" id="tabBtnExport" type="button"><span class="tab-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/></svg></span><span data-i18n="exp">Export</span></button>
   </nav>
+  </div>
 
   <main class="wrap" id="main">
 
@@ -784,7 +794,7 @@ function toast(msg, kind){ const r = document.getElementById('toastRoot'); if(!r
 
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.27';
+const APP_VERSION = 'v1.28';
 const APP_PUBLIC_URL = 'https://chitledger.scotcha.in/'; // used for share links when the page isn't served from a normal web address
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
@@ -3101,7 +3111,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   t.textContent=Q[i];
   function next(){ i=(i+1)%Q.length; t.textContent=Q[i]; }
   q.addEventListener('click',next); setInterval(function(){ if(!document.hidden) next(); },15000);
-  document.body.appendChild(bar);
+  var dk = document.getElementById('bottomDock');
+  if(dk && dk.firstChild) dk.insertBefore(bar, dk.firstChild); else document.body.appendChild(bar);
   function r(){ document.documentElement.style.setProperty('--ad-banner-height',(bar.offsetHeight?bar.offsetHeight+12:0)+'px'); }
   r(); if(window.ResizeObserver) new ResizeObserver(r).observe(bar);
 })();

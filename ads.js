@@ -115,8 +115,14 @@
     return arr;
   }
   function attachBar(bar) {
-    if (!document.body) document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(bar); });
-    else document.body.appendChild(bar);
+    function put() {
+      // Sits inside the bottom dock, directly above the nav, so the two can never overlap.
+      var dock = document.getElementById('bottomDock');
+      if (dock && dock.insertBefore && dock.firstChild) dock.insertBefore(bar, dock.firstChild);
+      else document.body.appendChild(bar);
+    }
+    if (!document.body) document.addEventListener('DOMContentLoaded', put);
+    else put();
   }
   function reserve(bar) {
     function update() {
