@@ -595,6 +595,7 @@
     <div id="installBox"></div>
     <div id="fundsList"><div class="fund-card skel"></div><div class="fund-card skel"></div></div>
     <div class="home-foot" data-i18n="dataStays">Your data stays on this device. No account required.</div>
+    <div class="home-foot"><a href="privacy.html" style="color:var(--primary);">Privacy policy</a></div>
   </div>
 
   <!-- SIMULATOR TAB -->
@@ -783,8 +784,8 @@ function toast(msg, kind){ const r = document.getElementById('toastRoot'); if(!r
 
 
 /* ---------- App version ---------- */
-const APP_VERSION = 'v1.25';
-const APP_PUBLIC_URL = 'https://sunilcap.github.io/ChitLedger/'; // used for share links when the page isn't served from a normal web address
+const APP_VERSION = 'v1.26';
+const APP_PUBLIC_URL = 'https://chitledger.scotcha.in/'; // used for share links when the page isn't served from a normal web address
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('versionBadge');
   if(badge) badge.textContent = APP_VERSION;
