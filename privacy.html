@@ -2,20 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Privacy Policy – Chit Ledger</title>
 <style>
   :root{--bg:#f7f4ee;--card:#fff;--ink:#1a132c;--soft:#5d5675;--line:#e4def0;--link:#4b2e83;color-scheme:light dark;}
   @media (prefers-color-scheme:dark){:root{--bg:#14101f;--card:#1d1830;--ink:#f1ecfb;--soft:#b3a9cf;--line:#322b4a;--link:#b79cf0;}}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
-  main{max-width:720px;margin:0 auto;padding:24px 18px 48px;}
+  main{max-width:720px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(48px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));}
+  .back{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px 0 10px;margin-bottom:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--link);font-weight:700;text-decoration:none;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;}
   h1{font-size:1.6rem;margin:0 0 4px;}h2{font-size:1.1rem;margin:1.6em 0 .3em;}
   p,li{color:var(--ink);}.soft{color:var(--soft);font-size:.9rem;}a{color:var(--link);}
 </style>
 </head>
 <body>
-<main><div class="card">
+<main>
+<a class="back" id="back" href="index.html" aria-label="Back to Chit Ledger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Back</a>
+<div class="card">
 <h1>Privacy Policy</h1>
 <p class="soft">Chit Ledger · Last updated: 26 October 2026</p>
 
@@ -44,9 +47,17 @@
 <p>If this policy changes, the date above will be updated.</p>
 
 <h2>Contact</h2>
-<p>Questions: <a href="mailto:YOUR-EMAIL@example.com">YOUR-EMAIL@example.com</a></p>
+<p>Questions: <a href="mailto:scotchlabs@gmail.com">scotchlabs@gmail.com</a></p>
 
 <p class="soft">Chit Ledger is a simulation and learning tool. It is not financial advice.</p>
 </div></main>
+<script>
+/* Go back to where the reader came from; if the page was opened directly, open the app. */
+document.getElementById('back').addEventListener('click', function (e) {
+  try {
+    if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) { e.preventDefault(); history.back(); }
+  } catch (err) {}
+});
+</script>
 </body>
 </html>
